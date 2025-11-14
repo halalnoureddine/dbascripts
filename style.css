@@ -1,0 +1,138 @@
+/* Début du contenu de style.css */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+.gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.card-hover {
+  transition: all 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transition: all 0.3s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.mobile-menu {
+  display: none;
+}
+@media (max-width: 768px) {
+  .desktop-nav { display: none; }
+  .mobile-menu { display: block; }
+}
+.pagination-btn {
+  transition: all 0.2s ease;
+}
+.pagination-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.active-sort {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+body.dark-mode {
+  background-color: #1a1a2e;
+  color: #e4e4e7;
+}
+body.dark-mode .bg-white {
+  background-color: #16213e !important;
+  color: #e4e4e7 !important;
+}
+body.dark-mode .text-gray-800 {
+  color: #e4e4e7 !important;
+}
+body.dark-mode .text-gray-700 {
+  color: #d4d4d8 !important;
+}
+body.dark-mode .text-gray-600 {
+  color: #a1a1aa !important;
+}
+body.dark-mode .border-gray-300 {
+  border-color: #3f3f46 !important;
+}
+body.dark-mode .bg-gray-50 {
+  background-color: #1a1a2e !important;
+}
+body.dark-mode .bg-gray-100 {
+  background-color: #27293d !important;
+}
+body.dark-mode header {
+  background-color: #16213e !important;
+  border-bottom-color: #667eea !important;
+}
+
+.favorite-icon {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.favorite-icon:hover {
+  transform: scale(1.2);
+}
+.favorite-icon.active {
+  color: #fbbf24;
+}
+
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+  border-radius: 0.5rem;
+}
+
+.script-tooltip {
+  position: absolute;
+  background: #1a1a2e;
+  color: #e4e4e7;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  z-index: 1000;
+  max-width: 500px;
+  width: max-content;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.script-tooltip.show {
+  opacity: 1;
+}
+
+.script-tooltip pre {
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.script-tooltip-header {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #a78bfa;
+  font-size: 0.875rem;
+}
+/* Fin du contenu de style.css */
