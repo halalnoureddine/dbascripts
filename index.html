@@ -1,300 +1,102 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DBA Script Manager</title>
+  
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0/dist/umd/supabase.min.js"></script>
-  <style>
-@keyframes fade {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade {
-  animation: fade 0.3s ease-out;
-}
-</style>
-
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 p-4">
-  
-<header class="bg-white shadow-md sticky top-0 z-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between items-center h-16">
-      <!-- Logo -->
-      <div class="flex-shrink-0 text-blue-700 font-bold text-xl">
-        📁 DBA Script Manager
-      </div>
 
-      <!-- Navigation -->
-      <nav class="hidden md:flex space-x-6 text-sm font-medium text-gray-700">
-        <button onclick="showHome()" class="hover:text-blue-600 transition">Accueil</button>
-        <button onclick="showCategoriesByDatabase('Oracle')">Oracle</button>
-		<button onclick="showCategoriesByDatabase('SQL Server')">SQL Server</button>
-        <button onclick="showAdmin()" class="hover:text-blue-600 transition">Admin</button>
-      </nav>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+  <header class="bg-white shadow-xl sticky top-0 z-50 border-b-4 border-indigo-600 transition duration-300 ease-in-out">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="showHome()">
+          <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center text-white text-xl font-bold">
+            DS
+          </div>
+          <span class="text-gray-800 font-bold text-xl hidden sm:block">DBA Script Manager</span>
+        </div>
+
+        <nav class="desktop-nav flex items-center space-x-1">
+          <button onclick="showHome()" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            🏠 Home
+          </button>
+          <button onclick="showCategoriesByDatabase('Oracle')" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            🔶 Oracle
+          </button>
+          <button onclick="showCategoriesByDatabase('SQL Server')" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            🔷 SQL Server
+          </button>
+          <button onclick="showFavorites()" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            ⭐ Favorites
+          </button>
+          <button onclick="toggleDarkMode()" class="px-3 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition">
+            <span id="themeIcon">🌙</span>
+          </button>
+          
+          <div id="authButtonContainer">
+            <button onclick="showLogin()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">
+                🔑 Login
+            </button>
+          </div>
+          </nav>
+
+        <button onclick="toggleMobileMenu()" class="mobile-menu p-2 rounded-lg hover:bg-gray-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
     </div>
-  </div>
-</header>
 
-	
-  <main id="content"></main>
-
-  <script>
-    // 🔑 Configuration Supabase
-    const supabase = window.supabase.createClient(
-      "https://josncyjmqsikoitvbehe.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impvc25jeWptcXNpa29pdHZiZWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MTY4NzAsImV4cCI6MjA3ODA5Mjg3MH0.bLz6ZVEWfRW5t1paXntlBSrTGcUAPscbI8tytMyimng"
-    );
-
-    const categories = ["Storage", "Backup", "Performance", "Maintenance", "Monitoring", "Sécurité", "Tuning", "Troubleshooting", "Others"];
-    const metadataKey = "scripts:metadata";
-    const password = "admin123";
-	
-function showHome() {
-  document.getElementById("content").innerHTML = `
-    <section class="flex flex-col items-center justify-center text-center py-16 px-4">
-      <h2 class="text-3xl font-bold text-blue-700 mb-4">Bienvenue sur DBA Script Manager</h2>
-      <p class="text-gray-700 max-w-2xl mb-6">
-        Cette application vous permet de centraliser, rechercher et gérer vos scripts SQL pour Oracle et SQL Server.
-        Ajoutez vos scripts, consultez-les depuis n’importe quel appareil, et gagnez du temps dans vos tâches DBA quotidiennes.
-      </p>
-      <div class="flex flex-wrap gap-4 justify-center">
-        <button onclick="showCategoriesByDatabase ('Oracle')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">📂 Scripts Oracle</button>
-        <button onclick="showCategoriesByDatabase ('SQL Server')" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition">📂 Scripts SQL Server</button>
-        <button onclick="showAdmin()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition">🛠 Ajouter un script</button>
-      </div>
-    </section>
-  `;
-}
-
-    async function searchScripts() {
-      const query = document.getElementById("searchInput").value.toLowerCase();
-      const { data, error } = await supabase.from("scripts").select("*");
-      if (error) return alert("Erreur : " + error.message);
-
-      const results = data.filter(script =>
-        script.title.toLowerCase().includes(query) ||
-        script.description.toLowerCase().includes(query) ||
-        (script.tags || []).some(tag => tag.toLowerCase().includes(query))
-      );
-
-      displayScripts(results, "searchResults");
-    }
-
-    async function loadScripts(dbType) {
-      const { data, error } = await supabase
-        .from("scripts")
-        .select("*")
-        .eq("database", dbType)
-        .order("created_at", { ascending: false });
-
-      if (error) return alert("Erreur : " + error.message);
-      displayScripts(data, "content");
-    }
-	
-	function showCategoriesByDatabase(dbType) {
-  supabase
-    .from("scripts")
-    .select("category")
-    .eq("database", dbType)
-    .then(({ data, error }) => {
-      if (error) return alert("Erreur : " + error.message);
-
-      const categories = [...new Set(data.map(item => item.category).filter(Boolean))];
-
-      document.getElementById("content").innerHTML = `
-        <section class="flex flex-col items-center py-12 px-4 text-center">
-          <h2 class="text-2xl font-bold text-blue-700 mb-6">📚 Catégories pour ${dbType}</h2>
-          <div class="flex flex-wrap gap-4 justify-center">
-            ${categories.map(cat => `
-              <button onclick="loadCategoryByDatabase('${dbType}', '${cat}')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">${cat}</button>
-            `).join('')}
-          </div>
-        </section>
-      `;
-    });
-}
-
- function loadCategoryByDatabase(dbType, category) {
-  supabase
-    .from("scripts")
-    .select("*")
-    .eq("database", dbType)
-    .eq("category", category)
-    .order("created_at", { ascending: false })
-    .then(({ data, error }) => {
-      if (error) return alert("Erreur : " + error.message);
-
-      const html = `
-        <section class="flex flex-col items-center py-12 px-4 text-center">
-          <h2 class="text-2xl font-bold text-blue-700 mb-6">📂 Scripts ${dbType} — ${category}</h2>
-          <div class="w-full max-w-3xl space-y-4">
-            ${data.map(script => `
-              <div class="p-4 border rounded shadow cursor-pointer hover:bg-gray-50 transition" onclick="showScriptDetail(${script.id})">
-                <div class="font-semibold text-lg text-gray-800">${script.title}</div>
-                <div class="text-sm text-gray-500">${new Date(script.created_at).toLocaleDateString()}</div>
-              </div>
-            `).join('')}
-          </div>
-        </section>
-      `;
-      document.getElementById("content").innerHTML = html;
-    });
-}
-
-	function displayScripts(scripts, targetId) {
-	const html = `
-		<section class="flex flex-col items-center py-12 px-4 text-center">
-		<h2 class="text-2xl font-bold text-blue-700 mb-6">📂 ${scripts[0]?.database || "Scripts"} disponibles</h2>
-		<div class="w-full max-w-3xl space-y-4">
-			${scripts.map(script => `
-			<div class="p-4 border rounded shadow cursor-pointer hover:bg-gray-50 transition" onclick="showScriptDetail(${script.id})">
-				<div class="font-semibold text-lg text-gray-800">${script.title}</div>
-				<div class="text-sm text-gray-500">${script.category} • ${new Date(script.created_at).toLocaleDateString()}</div>
-			</div>
-			`).join('')}
-		</div>
-		</section>
-	`;
-	document.getElementById(targetId).innerHTML = html;
-	}
-
-
-async function showScriptDetail(id) {
-  const { data, error } = await supabase
-    .from("scripts")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) return alert("Erreur : " + error.message);
-
-  const script = data;
-
-  // 🔧 Sécurisation de l'affichage des tags
-  let tagsDisplay = "Aucun";
-  if (Array.isArray(script.tags)) {
-    tagsDisplay = script.tags.join(", ");
-  } else if (typeof script.tags === "string") {
-    tagsDisplay = script.tags;
-  }
-
-  document.getElementById("content").innerHTML = `
-    <section class="flex flex-col items-center py-12 px-4 text-center">
-      <div class="w-full max-w-3xl bg-white p-6 rounded shadow">
-        <button onclick="loadScripts('${script.database}')" class="mb-4 text-blue-600 hover:underline text-sm">⬅️ Retour à ${script.database}</button>
-        <h2 class="text-2xl font-bold text-blue-700 mb-2">${script.title}</h2>
-        <p class="text-gray-700 mb-4">${script.description || ""}</p>
-        <pre id="scriptCode" class="bg-gray-100 p-4 rounded text-left whitespace-pre-wrap overflow-auto mb-4"><code>${script.code || ""}</code></pre>
-        <div class="flex flex-wrap gap-3 justify-center mb-4">
-          <button onclick="copyScript()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">📋 Copier le script</button>
-          <button onclick="deleteScript(${script.id})" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">🗑 Supprimer</button>
+    <div id="mobileNav" class="hidden mobile-menu bg-white border-t">
+      <div class="px-4 py-2 space-y-1">
+        <button onclick="showHome(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🏠 Home
+        </button>
+        <button onclick="showCategoriesByDatabase('Oracle'); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🔶 Oracle
+        </button>
+        <button onclick="showCategoriesByDatabase('SQL Server'); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🔷 SQL Server
+        </button>
+        <button onclick="showFavorites(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          ⭐ Favorites
+        </button>
+        <div id="mobileAuthButtonContainer">
+             <button onclick="showLogin(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg">
+                🔑 Login
+            </button>
         </div>
-        <div class="text-sm text-gray-600 text-left">
-          <p><strong>Catégorie :</strong> ${script.category || "Non spécifiée"}</p>
-          <p><strong>Tags :</strong> ${tagsDisplay}</p>
-          <p><strong>Prérequis :</strong> ${script.prerequis || "Aucun"}</p>
-          <p><strong>Notes :</strong> ${script.notes || "Aucune"}</p>
-        </div>
+        <button onclick="toggleDarkMode(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🌙 Dark Mode
+        </button>
       </div>
-    </section>
-  `;
-}
+    </div>
+  </header>
 
+  <main id="content" class="flex-grow"></main>
 
-async function deleteScript(id) {
-  if (!confirm("Confirmer la suppression de ce script ?")) return;
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50"></div>
 
-  const { error } = await supabase
-    .from("scripts")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    alert("Erreur lors de la suppression : " + error.message);
-  } else {
-    showToast("Script supprimé !");
-    showHome(); // ou loadScripts('Oracle') selon le contexte
-  }
-}
-
-
-function copyScript() {
-  const codeElement = document.querySelector("#scriptCode code");
-  const text = codeElement.textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast("Script copié !");
-  });
-}
-
-// ✅ Fonction toast popup
-function showToast(message) {
-  const toast = document.createElement("div");
-  toast.textContent = message;
-  toast.className = "fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-fade";
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2000);
-}
-
-
-
-
-    function showAdmin() {
-      const pwd = prompt("Mot de passe admin ?");
-      if (pwd !== "admin123") return alert("Accès refusé");
-
-      document.getElementById("content").innerHTML = `
-        <h2 class="text-xl font-bold mb-2">Ajouter un script</h2>
-        <form onsubmit="addScript(event)">
-          <input name="title" placeholder="Titre" required class="block mb-2 p-1 border w-full" />
-          <select name="database" required class="block mb-2 p-1 border w-full">
-            <option value="Oracle">Oracle</option>
-            <option value="SQL Server">SQL Server</option>
-          </select>
-           <select name="category" required class="block mb-2 p-1 border">
-            ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
-          </select>
-          <textarea name="code" placeholder="Code SQL" required class="block mb-2 p-1 border w-full h-32"></textarea>
-          <textarea name="description" placeholder="Description" class="block mb-2 p-1 border w-full h-16"></textarea>
-          <input name="tags" placeholder="Tags (séparés par virgules)" class="block mb-2 p-1 border w-full" />
-          <input name="prerequis" placeholder="Prérequis" class="block mb-2 p-1 border w-full" />
-          <textarea name="notes" placeholder="Notes d'utilisation" class="block mb-2 p-1 border w-full h-16"></textarea>
-          <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded">💾 Sauvegarder</button>
-        </form>
-      `;
-    }
-
-    async function addScript(e) {
-      e.preventDefault();
-      const f = e.target;
-      const script = {
-        title: f.title.value,
-        database: f.database.value,
-        category: f.category.value,
-        code: f.code.value,
-        description: f.description.value,
-        tags: f.tags.value.split(',').map(t => t.trim()),
-        prerequis: f.prerequis.value,
-        notes: f.notes.value,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await supabase.from("scripts").insert(script);
-      if (error) return alert("Erreur : " + error.message);
-      alert("Script ajouté !");
-      loadScripts(script.database);
-    }
-
-    document.addEventListener("DOMContentLoaded", showHome);
-  </script>
-  
-<footer class="bg-gray-100 text-center text-sm text-gray-600 py-4 mt-10 border-t">
-  <div class="max-w-6xl mx-auto">
-    © 2025 DBA Script Manager — Créé avec ❤️ et Supabase
-  </div>
+<footer class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white py-8 flex-shrink-0">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-sm">© 2025 DBA Script Manager | Propulsé par HN</p>
+    </div>
 </footer>
 
+  <script src="app.js"></script>
 </body>
 </html>
