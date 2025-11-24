@@ -3,10 +3,30 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impvc25jeWptcXNpa29pdHZiZWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MTY4NzAsImV4cCI6MjA3ODA5Mjg3MH0.bLz6ZVEWfRW5t1paXntlBSrTGcUAPscbI8tytMyimng"
 );
 
-const categories = ["Storage", "Backup", "Performance", "Maintenance", "Monitoring", "Security", "Tuning", "Troubleshooting", "Others"];
+const categories = [
+  "DATABASE INFO",
+  "BACKUP & RESTORE",
+  "PERFORMANCE",
+  "MONITORING",
+  "FLASHBACK",
+  "DATAGUARD",
+  "AUDITING & SECURITY",
+  "DATAPUMP",
+  "STATISTICS",
+  "SCHEDULER & JOBS"
+];
+
 const categoryIcons = {
-  "Storage": "💾", "Backup": "💿", "Performance": "⚡", "Maintenance": "🔧",
-  "Monitoring": "📊", "Security": "🔒", "Tuning": "⚙️", "Troubleshooting": "🔍", "Others": "📋"
+  "DATABASE INFO": "ℹ️",
+  "BACKUP & RESTORE": "💿",
+  "PERFORMANCE": "⚡",
+  "MONITORING": "📊",
+  "FLASHBACK": "⏪",
+  "DATAGUARD": "🛡️",
+  "AUDITING & SECURITY": "🔒",
+  "DATAPUMP": "🚚",
+  "STATISTICS": "📈",
+  "SCHEDULER & JOBS": "⏳"
 };
 
 let currentPage = 1;
@@ -448,6 +468,44 @@ function toggleMobileMenu() {
   menu.classList.toggle('hidden');
 }
 
+function renderScriptCard2(script) {
+  const dbIcon = script.database === "Oracle" ? "🔶" : "🔷";
+  const catIcon = categoryIcons[script.category] || "📋";
+  const isFav = isFavorite(script.id);
+  
+  // NOUVEAU DESIGN DE CARTE
+  return `
+    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group"
+         onclick="showScriptDetail(${script.id})"
+         onmouseenter="showScriptPreview(event, ${script.id})" 
+         onmouseleave="hideScriptPreview()">
+      
+      <div class="flex items-center space-x-4 flex-1 min-w-0">
+        
+               
+        <div class="flex-1 min-w-0">
+          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">${escapeHtml(script.title)}</h3>
+       
+
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4 flex-shrink-0 ml-4">
+        
+        <button class="text-gray-400 hover:text-yellow-500 transition duration-300 transform hover:scale-125 focus:outline-none" 
+                onclick="event.stopPropagation(); toggleFavorite(${script.id})" 
+                data-favorite-id="${script.id}">
+          ${isFav ? 
+            '<svg class="w-6 h-6 fill-current text-yellow-500" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' : 
+            '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.974 2.887a1 1 0 00-.363 1.118l1.519 4.674c.3.921-.755 1.688-1.538 1.118l-3.974-2.887a1 1 0 00-1.176 0l-3.974 2.887c-.783.57-1.838-.197-1.538-1.118l1.519-4.674a1 1 0 00-.363-1.118l-3.974-2.887c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"></path></svg>'}
+        </button>
+
+        <svg class="w-6 h-6 text-indigo-400 group-hover:text-indigo-600 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+      </div>
+    </div>
+  `;
+}
+
 function renderScriptCard(script) {
   const dbIcon = script.database === "Oracle" ? "🔶" : "🔷";
   const catIcon = categoryIcons[script.category] || "📋";
@@ -874,7 +932,7 @@ function renderScriptList() {
       </div>
     `;
   } else {
-    listContainer.innerHTML = paginatedScripts.map(script => renderScriptCard(script)).join('');
+    listContainer.innerHTML = paginatedScripts.map(script => renderScriptCard2(script)).join('');
   }
 
   const pageNumbers = [];
@@ -1464,8 +1522,6 @@ async function addScript(e) {
     code: f.code.value.trim(),
     description: f.description.value.trim(),
     tags: f.tags.value.split(',').map(t => t.trim()).filter(t => t),
-    prerequis: f.prerequis.value.trim(),
-    notes: f.notes.value.trim(),
     added_by: user.email, // Utilisation de l'email de l'utilisateur connecté
 	visibility: f.visibility.value,
     created_at: new Date().toISOString()
