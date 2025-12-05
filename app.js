@@ -13,7 +13,8 @@ const categories = [
   "AUDITING & SECURITY",
   "DATAPUMP",
   "STATISTICS",
-  "SCHEDULER & JOBS"
+  "SCHEDULER & JOBS",
+  "HR ACCESS"
 ];
 
 const categoryIcons = {
@@ -26,7 +27,8 @@ const categoryIcons = {
   "AUDITING & SECURITY": "🔒",
   "DATAPUMP": "🚚",
   "STATISTICS": "📈",
-  "SCHEDULER & JOBS": "⏳"
+  "SCHEDULER & JOBS": "⏳",
+  "HR ACCESS": "🧑‍💻"
 };
 
 let currentPage = 1;
@@ -473,47 +475,69 @@ function renderScriptCard2(script) {
   const catIcon = categoryIcons[script.category] || "📋";
   const isFav = isFavorite(script.id);
   
-  // NOUVEAU DESIGN DE CARTE
+  // LOGIQUE D'AFFICHAGE DU STATUT (Pour l'admin)
+  let statusBadge = '';
+  let cardClass = '';
+  
+  if (script.visibility === 'pending') {
+      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">⏳ En attente</span>`;
+      cardClass = 'border-l-4 border-yellow-400'; // Bordure jaune pour repérer facilement
+  } else if (script.visibility === 'private') {
+      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 ml-2">🔒 Privé</span>`;
+  }
+
   return `
-    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group"
+    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group ${cardClass}"
          onclick="showScriptDetail(${script.id})"
          onmouseenter="showScriptPreview(event, ${script.id})" 
          onmouseleave="hideScriptPreview()">
       
       <div class="flex items-center space-x-4 flex-1 min-w-0">
         
-               
         <div class="flex-1 min-w-0">
-          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">${escapeHtml(script.title)}</h3>
-       
+          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate flex items-center">
+            ${escapeHtml(script.title)}
+            ${statusBadge} </h3>
+          
+          <div class="flex items-center text-gray-400 text-xs mt-2 space-x-3">
+             <span class="flex items-center gap-1">
+                <span>${dbIcon}</span>
+                <span>${script.database}</span>
+             </span>
+             <span class="flex items-center gap-1">
+                <span>${catIcon}</span>
+                <span>${script.category}</span>
+             </span>
+          </div>
 
         </div>
       </div>
 
       <div class="flex items-center space-x-4 flex-shrink-0 ml-4">
-        
         <button class="text-gray-400 hover:text-yellow-500 transition duration-300 transform hover:scale-125 focus:outline-none" 
                 onclick="event.stopPropagation(); toggleFavorite(${script.id})" 
                 data-favorite-id="${script.id}">
-          ${isFav ? 
-            '<svg class="w-6 h-6 fill-current text-yellow-500" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' : 
-            '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.974 2.887a1 1 0 00-.363 1.118l1.519 4.674c.3.921-.755 1.688-1.538 1.118l-3.974-2.887a1 1 0 00-1.176 0l-3.974 2.887c-.783.57-1.838-.197-1.538-1.118l1.519-4.674a1 1 0 00-.363-1.118l-3.974-2.887c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"></path></svg>'}
+          ${isFav ? '⭐' : '☆'}
         </button>
-
-        <svg class="w-6 h-6 text-indigo-400 group-hover:text-indigo-600 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
       </div>
     </div>
   `;
 }
 
+// --- Remplacement de la fonction renderScriptCard ---
+// --- Remplacement de la fonction renderScriptCard ---
 function renderScriptCard(script) {
   const dbIcon = script.database === "Oracle" ? "🔶" : "🔷";
   const catIcon = categoryIcons[script.category] || "📋";
   const isFav = isFavorite(script.id);
   
+  // NOUVEAU: Déterminer si le script est en attente et assigner la classe
+  const isPending = script.visibility === 'pending';
+  const pendingClass = isPending ? 'card-pending' : '';
+  
   // NOUVEAU DESIGN DE CARTE
   return `
-    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group"
+    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group ${pendingClass}"
          onclick="showScriptDetail(${script.id})"
          onmouseenter="showScriptPreview(event, ${script.id})" 
          onmouseleave="hideScriptPreview()">
@@ -525,7 +549,10 @@ function renderScriptCard(script) {
         </div>
         
         <div class="flex-1 min-w-0">
-          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">${escapeHtml(script.title)}</h3>
+          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">
+            ${escapeHtml(script.title)} 
+            ${isPending ? '<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-bold ml-2">⏳ PENDING</span>' : ''}
+          </h3>
           <p class="text-gray-600 text-sm mt-1 truncate">${escapeHtml(script.description || "Aucune description fournie.")}</p>
           
           <div class="flex items-center text-gray-400 text-xs mt-2 space-x-3">
@@ -645,7 +672,15 @@ async function loadRecentScripts() {
       `;
       return;
     }
-	allScripts = data.filter(script => userRole === 'admin' || script.visibility === 'public');
+	const currentUserId = user ? user.id : null; // L'objet user est accessible globalement
+    
+    // NOUVEAU FILTRE : Admin voit tout. Autres voient public OU leurs propres scripts.
+    allScripts = data.filter(script => 
+      userRole === 'admin' || 
+      script.visibility === 'public' ||
+      (currentUserId && script.added_by === currentUserId) // L'utilisateur voit ses propres scripts
+    );
+	
     const recentScripts = data.filter(script => userRole === 'admin' || script.visibility === 'public');
     allScripts = [...new Set([...allScripts, ...recentScripts])];
 	
@@ -734,6 +769,27 @@ function displaySearchResults(results, query) {
 }
 
 function showHome() {
+  // 1. Déterminer quel bouton afficher (NOUVELLE LOGIQUE)
+  let actionButton = '';
+  
+  if (user && userRole === 'admin') {
+      actionButton = `
+      <button onclick="showAdmin()" class="px-6 py-3 bg-purple-900 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
+        🔐 Admin Panel
+      </button>`;
+  } else if (user) {
+      actionButton = `
+      <button onclick="showContributorAddForm()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
+        ➕ Proposer un script
+      </button>`;
+  } else {
+      actionButton = `
+      <button onclick="showLogin()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
+        🔑 Se connecter
+      </button>`;
+  }
+
+  // 2. Affichage de la page (ANCIENNE STRUCTURE HTML + NOUVEL actionButton)
   document.getElementById("content").innerHTML = `
     <section class="gradient-bg text-white py-20 px-4">
       <div class="max-w-4xl mx-auto text-center animate-fade-in">
@@ -748,9 +804,9 @@ function showHome() {
           <button onclick="showCategoriesByDatabase('SQL Server')" class="px-6 py-3 bg-white text-indigo-700 rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold">
             🔷 SQL Server Scripts
           </button>
-          <button onclick="${user && userRole === 'admin' ? 'showAdmin()' : 'showLogin()'}" class="px-6 py-3 bg-purple-900 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
-            🔐 Admin Panel
-          </button>
+          
+          ${actionButton}
+          
         </div>
       </div>
     </section>
@@ -792,27 +848,28 @@ function showHome() {
       </div>
     </section>
 
-
-  <section class="max-w-5xl mx-auto py-16 px-4 sm:px-6 lg:px-8 animate-fade-in">
-    <div class="bg-gradient-to-br from-gray-50 to-indigo-100 p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-gray-200">
+    <section class="max-w-5xl mx-auto py-16 px-4 sm:px-6 lg:px-8 animate-fade-in">
+      <div class="bg-gradient-to-br from-gray-50 to-indigo-100 p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-gray-200">
         
         <span class="absolute top-0 right-0 -mt-2 -mr-2 px-4 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-bold rounded-full shadow-lg transform rotate-6 z-10 tracking-wider">
-            HOT
+          HOT
         </span>
         
         <h2 class="text-4xl font-extrabold text-gray-900 mb-8 text-center tracking-tight">
-            <span class="inline-block bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
-               Recently added scripts
-            </span>
+          <span class="inline-block bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700">
+            Recently added scripts
+          </span>
         </h2>
         
         <div id="recentScriptsList" class="grid grid-cols-1 gap-6">
-            </div>
-    </div>
-  </section>
+          <p class="col-span-full text-center text-gray-500">Chargement des scripts...</p>
+        </div>
+      </div>
+    </section>
 
   `;
   
+  // 3. Appel à la fonction qui va remplir le conteneur ci-dessus
   loadRecentScripts();
 }
 
@@ -999,7 +1056,14 @@ function loadCategoryByDatabase(dbType, category) {
         return;
       }
 
-      allScripts = data.filter(script => userRole === 'admin' || script.visibility === 'public');
+      const currentUserId = user ? user.id : null; // L'objet user est accessible globalement
+    
+    // NOUVEAU FILTRE : Admin voit tout. Autres voient public OU leurs propres scripts.
+    allScripts = data.filter(script => 
+      userRole === 'admin' || 
+      script.visibility === 'public' ||
+      (currentUserId && script.added_by === currentUserId) // L'utilisateur voit ses propres scripts
+    );
       filteredScripts = [...allScripts]; // Important d'initialiser filteredScripts avec les données filtrées
       currentPage = 1;
       currentSort = 'recent';
@@ -1273,8 +1337,8 @@ async function showAdmin() {
     });
 }
 
-
 function showAdminTab(tab) {
+  // 1. Gestion des classes CSS pour les onglets (Active / Inactive)
   document.getElementById('tabAdd').className = tab === 'add' 
     ? 'px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600'
     : 'px-6 py-3 font-semibold text-gray-600 hover:text-purple-600';
@@ -1289,6 +1353,7 @@ function showAdminTab(tab) {
 
   const content = document.getElementById('adminTabContent');
 
+  // --- ONGLET 1 : AJOUTER UN SCRIPT (ADMIN) ---
   if (tab === 'add') {
     content.innerHTML = `
       <form onsubmit="addScript(event)" class="space-y-4">
@@ -1338,13 +1403,14 @@ function showAdminTab(tab) {
             placeholder="space, disk, monitoring" />
         </div>
 
-		<div class="mb-4">
-		<label for="visibility" class="block text-sm font-medium text-gray-700">Visibilité du Script</label>
-		<select name="visibility" id="visibility" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500">
-        <option value="public" selected>Public (Visible par tous)</option>
-        <option value="admin_only">Admin Only (Visible par les admins connectés)</option>
-    </select>
-		</div>
+        <div class="mb-4">
+            <label for="visibility" class="block text-sm font-medium text-gray-700">Visibilité du Script</label>
+            <select name="visibility" id="visibility" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="public" selected>🌍 Public (Visible par tous)</option>
+                <option value="private">🔒 Privé (Visible par les admins)</option>
+                </select>
+        </div>
+
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-2">Prerequisites</label>
           <input name="prerequis" type="text"
@@ -1369,10 +1435,11 @@ function showAdminTab(tab) {
             Cancel
           </button>
         </div>
-		
 
       </form>
     `;
+
+  // --- ONGLET 2 : GÉRER LES SCRIPTS (AVEC FILTRE DE VALIDATION) ---
   } else if (tab === 'manage') {
     const scripts = window.adminScripts || [];
     
@@ -1394,35 +1461,61 @@ function showAdminTab(tab) {
       </div>
 
       <div id="adminScriptsList" class="space-y-3 max-h-96 overflow-y-auto">
-        ${scripts.map(script => `
-          <div class="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-purple-400 transition">
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-2">
-                  <span>${script.database === 'Oracle' ? '🔶' : '🔷'}</span>
-                  <span>${categoryIcons[script.category] || '📋'}</span>
-                  <span class="text-xs px-2 py-1 bg-gray-100 rounded">${script.database}</span>
-                  <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">${script.category}</span>
+        ${scripts.map(script => {
+            // Logique visuelle pour les scripts en attente
+            const isPending = script.visibility === 'pending';
+            const bgClass = isPending ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-gray-200';
+            const statusBadge = isPending 
+                ? '<span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800">⏳ EN ATTENTE</span>' 
+                : '';
+
+            return `
+              <div class="${bgClass} border-2 rounded-lg p-4 hover:border-purple-400 transition">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span>${script.database === 'Oracle' ? '🔶' : '🔷'}</span>
+                      <span>${categoryIcons[script.category] || '📋'}</span>
+                      <span class="text-xs px-2 py-1 bg-gray-100 rounded">${script.database}</span>
+                      <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">${script.category}</span>
+                    </div>
+                    
+                    <h3 class="font-bold text-gray-800 mb-1 flex items-center">
+                        ${escapeHtml(script.title)}
+                        ${statusBadge}
+                    </h3>
+                    
+                    <p class="text-sm text-gray-600 mb-2">${escapeHtml(script.description || 'No description')}</p>
+                    <div class="flex items-center gap-4 text-xs text-gray-500">
+                        <span>📅 ${new Date(script.created_at).toLocaleDateString('en-US')}</span>
+                        <span>👤 Ajouté par: ${escapeHtml(script.added_by || 'Unknown')}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex gap-2 ml-4">
+                    <button onclick="showScriptDetail(${script.id})" 
+                      class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                      👁️ View
+                    </button>
+                    
+                    <button onclick="editScriptDetails(${script.id})" 
+                      class="px-3 py-2 ${isPending ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-orange-700'} text-white rounded-lg transition text-sm font-bold">
+                      ${isPending ? '✏️ VALIDER' : '✏️ Update'}
+                    </button>
+                    
+                    <button onclick="confirmDeleteScript(${script.id}, '${escapeHtml(script.title).replace(/'/g, "\\'")}')" 
+                      class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
-                <h3 class="font-bold text-gray-800 mb-1">${escapeHtml(script.title)}</h3>
-                <p class="text-sm text-gray-600 mb-2">${escapeHtml(script.description || 'No description')}</p>
-                <p class="text-xs text-gray-500">Created ${new Date(script.created_at).toLocaleDateString('en-US')}</p>
               </div>
-              <div class="flex gap-2 ml-4">
-                <button onclick="showScriptDetail(${script.id})" 
-                  class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-                  👁️ View
-                </button>
-                <button onclick="confirmDeleteScript(${script.id}, '${escapeHtml(script.title).replace(/'/g, "\\'")}')" 
-                  class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
-                  🗑️ Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        `).join('')}
+            `;
+        }).join('')}
       </div>
     `;
+
+  // --- ONGLET 3 : IMPORT / EXPORT ---
   } else if (tab === 'import') {
     content.innerHTML = `
       <div class="space-y-6">
@@ -1454,6 +1547,215 @@ function showAdminTab(tab) {
   }
 }
 
+/**
+ * Affiche le formulaire pré-rempli pour modifier un script existant.
+ * @param {number} scriptId - L'ID du script à modifier.
+ */
+as/**
+ * Affiche le formulaire pré-rempli pour modifier un script existant.
+ * @param {number} scriptId - L'ID du script à modifier.
+ */
+/**
+ * Affiche le formulaire pré-rempli pour modifier un script existant.
+ * @param {number} scriptId - L'ID du script à modifier.
+ */
+// --- Remplacement de la fonction editScriptDetails (Ligne ~795) ---
+async function editScriptDetails(scriptId) {
+    const { data: script, error } = await supabase
+        .from('scripts')
+        .select('*')
+        .eq('id', scriptId)
+        .single();
+    
+    if (error || !script) {
+        showToast("❌ Impossible de charger le script.", "error");
+        return;
+    }
+
+    const content = document.getElementById("content");
+    const tagsString = Array.isArray(script.tags) ? script.tags.join(', ') : script.tags || '';
+    const inputStyle = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border';
+
+    content.innerHTML = `
+        <div class="max-w-3xl mx-auto p-8 animate-fade-in bg-white rounded-xl shadow-2xl">
+            <h1 class="text-3xl font-bold border-b-2 border-indigo-500 pb-3 mb-8 text-gray-900">
+                ✏️ Modifier / Valider : ${escapeHtml(script.title)}
+            </h1>
+            
+            <form onsubmit="updateScript(event)" class="space-y-4">
+			<input type="hidden" name="scriptId" value="${scriptId}">
+                <div class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                    <label for="visibility" class="block text-sm font-bold text-gray-800 uppercase mb-1">Statut de Visibilité</label>
+                    <select id="visibility" name="visibility" required class="${inputStyle} bg-white">
+                        <option value="pending" ${script.visibility === 'pending' ? 'selected' : ''}>⏳ En attente (Non visible)</option>
+                        <option value="public" ${script.visibility === 'public' ? 'selected' : ''}>🌍 Public (Validé)</option>
+                        <option value="private" ${script.visibility === 'private' ? 'selected' : ''}>🔒 Privé (Admin seul)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Passez à "Public" pour valider le script d'un contributeur.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Database</label>
+                        <select name="database" required class="${inputStyle}">
+                            <option value="Oracle" ${script.database === 'Oracle' ? 'selected' : ''}>Oracle</option>
+                            <option value="SQL Server" ${script.database === 'SQL Server' ? 'selected' : ''}>SQL Server</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Catégorie</label>
+                        <select name="category" required class="${inputStyle}">
+                            ${categories.map(cat => `<option value="${cat}" ${script.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Titre</label>
+                    <input type="text" name="title" value="${escapeHtml(script.title)}" required class="${inputStyle}">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea name="description" rows="2" class="${inputStyle}">${escapeHtml(script.description || '')}</textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Code SQL</label>
+                    <textarea name="code" rows="8" required class="font-mono text-sm ${inputStyle}">${script.code}</textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700">Tags</label>
+                    <input type="text" name="tags" value="${escapeHtml(tagsString)}" class="${inputStyle}">
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t">
+                    <button type="button" onclick="showAdmin()" class="px-4 py-2 bg-gray-200 rounded text-gray-700 hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700">Enregistrer les modifications</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+// --- NOUVELLE FONCTION : Formulaire d'ajout pour les non-admins ---
+function showContributorAddForm() {
+    const content = document.getElementById("content");
+    
+    // On réutilise le style du formulaire mais sans le champ visibilité (il sera 'pending' par défaut)
+    content.innerHTML = `
+      <section class="max-w-3xl mx-auto py-12 px-4 animate-fade-in">
+        <div class="bg-white rounded-xl shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">➕ Proposer un nouveau script</h2>
+            <p class="mb-6 text-blue-600 bg-blue-50 p-3 rounded">ℹ️ Votre script sera soumis à validation avant d'être visible par tous.</p>
+            
+            <form onsubmit="addScript(event)" class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Titre *</label>
+                  <input name="title" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" />
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Database *</label>
+                    <select name="database" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                      <option value="Oracle">🔶 Oracle</option>
+                      <option value="SQL Server">🔷 SQL Server</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Catégorie *</label>
+                    <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                      ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Code SQL *</label>
+                  <textarea name="code" required rows="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-purple-500"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <textarea name="description" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"></textarea>
+                </div>
+                
+                <input name="tags" type="hidden" value="" />
+
+                <div class="flex gap-3 pt-4">
+                  <button type="submit" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">🚀 Soumettre le script</button>
+                  <button type="button" onclick="showHome()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Annuler</button>
+                </div>
+            </form>
+        </div>
+      </section>
+    `;
+}
+
+// La fonction n'a besoin que de l'événement (e), l'ID sera lu depuis le formulaire.
+// Remplacez votre fonction updateScript par celle-ci
+async function updateScript(e) {
+    e.preventDefault();
+    
+    // 1. Récupération de la session et VÉRIFICATION DU RÔLE ADMIN
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    
+    // Vérification stricte du rôle
+if (!user || userRole !== 'admin') { // <-- CORRECTION ICI : Remplacer user.user_metadata?.role par userRole
+    showToast("❌ Erreur. Rôle Admin requis pour modifier/valider.", "error");
+    return;
+}
+    
+    const f = e.target;
+    // L'ID du script doit être lu depuis un champ caché dans le formulaire (scriptId)
+    const scriptId = f.scriptId?.value; // Utilisation de ?. pour être robuste
+    
+    if (!scriptId) {
+        showToast("❌ Erreur critique : ID du script manquant.", "error");
+        return;
+    }
+
+    // 2. Construction de l'objet de mise à jour (SANS LIRE PREREQUIS ET NOTES)
+    const updatedScript = {
+        title: f.title.value.trim(),
+        database: f.database.value,
+        category: f.category.value,
+        code: f.code.value.trim(),
+        description: f.description.value.trim(),
+        tags: f.tags.value.split(',').map(t => t.trim()).filter(t => t),
+        
+        // 🛑 CORRECTION : Champs exclus du formulaire -> fixés à '' 🛑
+        prerequis: '', 
+        notes: '', 
+        
+        visibility: f.visibility.value, // Champ géré par l'Admin
+        updated_at: new Date().toISOString()
+    };
+
+    // 3. Mettre à jour le script dans la base de données
+    const { error } = await supabase.from('scripts')
+        .update(updatedScript)
+        .eq('id', scriptId);
+
+    if (error) {
+        // Cela peut encore arriver si la RLS UPDATE n'autorise pas l'admin à écrire
+        showToast("❌ Échec de la mise à jour : Vérifiez la RLS UPDATE.", "error");
+        console.error("Update Error:", error);
+    } else {
+        const isPending = updatedScript.visibility === 'pending';
+        const message = isPending 
+            ? "✅ Modifications enregistrées." 
+            : "✅ Script validé et publié !";
+        
+        showToast(message, "success");
+        
+        // Recharger la vue d'administration
+        setTimeout(() => showAdminTab('manage'), 1500); 
+    }
+}
 function filterAdminScripts(query) {
   const scripts = window.adminScripts || [];
   const searchTerm = query.toLowerCase();
@@ -1485,11 +1787,15 @@ function filterAdminScripts(query) {
         <div class="flex gap-2 ml-4">
           <button onclick="showScriptDetail(${script.id})" 
             class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-            👁️ Voir
+            👁️ view
           </button>
-          <button onclick="confirmDeleteScript(${script.id}, '${escapeHtml(script.title).replace(/'/g, "\\'")}')" 
+          <button onclick="editScriptDetails(${script.id})" 
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+            👁️ update
+          </button> 
+			 <button onclick="confirmDeleteScript(${script.id}, '${escapeHtml(script.title).replace(/'/g, "\\'")}')" 
             class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">
-            🗑️ Supprimer
+            🗑️ delete
           </button>
         </div>
       </div>
@@ -1505,16 +1811,34 @@ function confirmDeleteScript(id, title) {
 }
 
 // FONCTION MODIFIÉE : addScript (Utilise l'email de l'utilisateur connecté)
+
 async function addScript(e) {
   e.preventDefault();
   
-  if (!user) {
-         showToast("❌ Vous devez être connecté pour ajouter un script.", "error");
-         return;
-    }
+  // 1. Récupération de la session de manière robuste
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
+  if (sessionError || !session) {
+    // Ce message devrait maintenant fonctionner si la session n'est pas valide
+    showToast("❌ Erreur. Session non valide. Veuillez vous reconnecter.", "error"); 
+    console.error("Session Error:", sessionError);
+    return;
+  }
+  
+  const user = session.user;
+  
+  const isUserAdmin = user.user_metadata && user.user_metadata.role === "admin";
   const f = e.target;
   
+  // 2. Logique de visibilité
+  let visibilityStatus = 'pending'; 
+  
+  // L'admin peut choisir la visibilité, sinon c'est 'pending'
+  if (isUserAdmin && f.visibility) {
+      visibilityStatus = f.visibility.value;
+  }
+  
+  // 3. Construction de l'objet script (AVEC LECTURE SÉCURISÉE DES CHAMPS OPTIONNELS)
   const script = {
     title: f.title.value.trim(),
     database: f.database.value,
@@ -1522,20 +1846,34 @@ async function addScript(e) {
     code: f.code.value.trim(),
     description: f.description.value.trim(),
     tags: f.tags.value.split(',').map(t => t.trim()).filter(t => t),
-    added_by: user.email, // Utilisation de l'email de l'utilisateur connecté
-	visibility: f.visibility.value,
+    added_by: user.email, // Utilisation de l'email pour la RLS (TEXT)
+    visibility: visibilityStatus, 
+    
+    // 🛑 CORRECTION ICI : Vérifie si le champ existe avant de lire sa valeur
+    prerequis: f.prerequis ? f.prerequis.value.trim() : '', 
+    notes: f.notes ? f.notes.value.trim() : '', 
+
     created_at: new Date().toISOString()
   };
 
-  // L'insertion échouera au niveau de la BDD si l'utilisateur n'est pas "admin" (grâce à la Policy RLS)
+  // 4. Insertion dans la base de données
   const { error } = await supabase.from("scripts").insert(script);
   
   if (error) {
-    showToast("❌ Erreur d'ajout. Permission refusée. (Rôle Admin requis)", "error");
+    // Si nous arrivons ici, c'est que la RLS est incorrecte
+    showToast("❌ Erreur d'ajout. Permission refusée (RLS).", "error");
     console.error(error);
   } else {
-    showToast("✅ Script ajouté !", "success");
-    setTimeout(() => loadCategoryByDatabase(script.database, script.category), 1500);
+    const message = visibilityStatus === 'pending' 
+        ? "✅ Script envoyé ! En attente de validation admin."
+        : "✅ Script ajouté et publié !";
+    showToast(message, "success");
+    
+    // Réinitialiser le formulaire
+    f.reset();
+    
+    // Retourner à l'affichage des scripts après un court délai
+    setTimeout(() => showHome(), 1500);
   }
 }
 

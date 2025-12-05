@@ -135,4 +135,76 @@ pre code.hljs {
   color: #a78bfa;
   font-size: 0.875rem;
 }
+
+/* --- Boutons d'Action Spécifiques aux Scripts (Manage Script) --- */
+.btn-action {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem; /* rounded-lg */
+  transition: all 0.2s ease;
+  font-weight: 600;
+  margin-right: 0.5rem; /* Espace entre les boutons */
+  border: none;
+  cursor: pointer;
+  white-space: nowrap; /* Empêche le texte de se casser sur plusieurs lignes */
+}
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Bouton pour Voir (View) - Bleu/Indigo */
+.btn-view {
+  background-color: #5a67d8;
+  color: white;
+}
+.btn-view:hover {
+  background-color: #4c51bf;
+}
+
+/* Bouton pour Modifier (Update) - Jaune/Ambre */
+.btn-update {
+  background-color: #ecc94b;
+  color: #3f3f46; /* Gris foncé pour un meilleur contraste */
+}
+.btn-update:hover {
+  background-color: #d69e2e;
+}
+
+/* Bouton pour Supprimer (Delete) - Rouge */
+.btn-delete {
+  background-color: #e53e3e;
+  color: white;
+}
+.btn-delete:hover {
+  background-color: #c53030;
+}
+
+
+/* --- Bouton Secondaire (Annuler / Cancel) --- */
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem; /* rounded-lg */
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  /* Light Mode */
+  background-color: transparent;
+  color: #4b5563; /* Gray-700 */
+  border: 1px solid #d1d5db; /* Gray-300 */
+}
+.btn-secondary:hover {
+  background-color: #f3f4f6; /* Gray-50 */
+  transform: translateY(-1px);
+}
+
+/* Dark Mode Overrides */
+body.dark-mode .btn-secondary {
+  background-color: transparent !important;
+  color: #d1d5db !important; /* Gray-300 */
+  border: 1px solid #4b5563 !important; /* Gray-600 */
+}
+body.dark-mode .btn-secondary:hover {
+  background-color: #374151 !important; /* Gray-700 */
+}
 /* Fin du contenu de style.css */
