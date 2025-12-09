@@ -53,10 +53,6 @@ function loadUserData() {
   favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 }
 
-// NOUVELLE FONCTION : Écouteur d'état d'authentification
-// NOUVELLE FONCTION : Écouteur d'état d'authentification
-// Dans app.js, trouvez la fonction setupAuthListener
-// Dans app.js, trouvez la fonction setupAuthListener
 function setupAuthListener() {
     supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
@@ -69,26 +65,12 @@ function setupAuthListener() {
         
         renderAuthButtons(); 
         
-        // *******************************************
-        // Modification pour gérer la transition de vue après la connexion/déconnexion
-        // *******************************************
-        // Si l'état change (que ce soit SIGNED_IN ou SIGNED_OUT)
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            // On s'assure que l'utilisateur est sur la page d'accueil pour masquée le formulaire Login/Admin
+        // ✅ Ne rediriger QUE lors de la déconnexion
+        if (event === 'SIGNED_OUT') {
+            sessionStorage.removeItem('currentView');
             showHome();
         }
-        
-        // Si le but est de rediriger l'admin vers le panneau Admin après la connexion, 
-        // ajoutez cette ligne APRES le chargement du rôle :
-        if (event === 'SIGNED_IN' && userRole === 'admin') {
-             // Rediriger vers l'Admin s'il vient de se connecter en tant qu'Admin
-             // showAdmin(); // Optionnel, showHome est plus sûr pour la première fois
-        }
-        
-        // Cette partie gère la déconnexion depuis le panneau Admin
-        if (!user && document.getElementById('adminTabContent')) {
-            showHome(); 
-        }
+        // Ne rien faire lors de SIGNED_IN (rester sur la page actuelle)
     });
 }
 
@@ -211,9 +193,6 @@ function showLogin() {
     `;
 }
 
-// NOUVELLE FONCTION : Gère la connexion
-// NOUVELLE FONCTION : Gère la connexion
-// Dans app.js, trouvez cette fonction
 async function handleLogin(e) {
     e.preventDefault();
     const email = e.target.email.value;
@@ -226,8 +205,21 @@ async function handleLogin(e) {
     } else {
         showToast("✅ Connexion réussie!", "success");
         
-        // ↓↓↓ LIGNE À AJOUTER OU À DÉCOMMENTER ↓↓↓
-        showHome(); // CRUCIAL : Change la vue principale vers l'accueil
+        // ✅ Attendre que le rôle soit chargé, puis rediriger
+        setTimeout(async () => {
+            // Récupérer la session et le rôle
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            if (currentUser) {
+                await checkAdminRole(currentUser.id);
+            }
+            
+            // Rediriger selon le rôle
+            if (userRole === 'admin') {
+                showAdmin();
+            } else {
+                showHome();
+            }
+        }, 500); // Délai pour laisser le temps au toast de s'afficher
     }
 }
 
@@ -780,7 +772,7 @@ function showHome() {
   } else if (user) {
       actionButton = `
       <button onclick="showContributorAddForm()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
-        ➕ Proposer un script
+        ➕ add your script
       </button>`;
   } else {
       actionButton = `
@@ -1196,12 +1188,6 @@ async function showScriptDetail(id) {
                 <p><span class="font-medium">Created:</span> ${new Date(script.created_at).toLocaleDateString('en-US')}</p>
               </div>
             </div>
-            <div>
-              <h4 class="font-semibold text-gray-700 mb-2">🏷️ Tags</h4>
-              <div class="flex flex-wrap gap-2">
-                ${tagsDisplay}
-              </div>
-            </div>
           </div>
 
           ${script.prerequis ? `
@@ -1270,71 +1256,69 @@ async function deleteScript(id) {
 // REMPLACEZ VOTRE ANCIENNE FONCTION 'showAdmin' PAR CELLE-CI :
 
 async function showAdmin() {
-    
-    // 1. On demande à Supabase "Qui est l'utilisateur ACTUEL ?"
+    // Vérification de l'authentification et du rôle
     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-    // 2. Si personne n'est connecté, on affiche la page de login.
     if (!currentUser) {
         showToast("❌ Accès refusé. Veuillez vous connecter.", "error");
         showLogin();
         return;
     }
 
-    // 3. Si un utilisateur est connecté, on vérifie son rôle dans la table 'profiles'
     const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', currentUser.id)
         .single();
 
-    // 4. Si erreur OU si le rôle n'est pas 'admin', on refuse l'accès.
     if (error || !profile || profile.role !== 'admin') {
         showToast("❌ Accès Admin refusé. Vous n'avez pas les permissions.", "error");
-        // L'utilisateur est connecté, mais n'est pas admin. On le renvoie à l'accueil.
         showHome();
         return;
     }
 
-    // 5. SUCCÈS ! L'utilisateur est connecté ET est admin.
-    // On met à jour les variables globales (par sécurité)
     user = currentUser;
     userRole = profile.role;
     
-    // 6. On charge le contenu du panneau d'administration (votre code d'origine)
-    supabase.from("scripts").select("*").order("created_at", { ascending: false }).then(({ data, error }) => {
-        if (error) {
-            showToast("Erreur de chargement", "error");
-            return;
-        }
+    // ✅ IMPORTANT : Recharger les scripts depuis la base
+    const { data, error: scriptsError } = await supabase
+        .from("scripts")
+        .select("*")
+        .order("created_at", { ascending: false });
+    
+    if (scriptsError) {
+        showToast("Erreur de chargement", "error");
+        return;
+    }
 
-        // C'est ici que votre HTML pour 'Ajouter/Modifier/Supprimer' est généré
-        document.getElementById("content").innerHTML = `
-            <section class="max-w-6xl mx-auto py-12 px-4 animate-fade-in">
-                <div class="bg-white rounded-xl shadow-xl p-8 mb-8">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6">🔐 Administration (${user.email})</h2>
-                    
-                    <div class="flex gap-4 mb-6 border-b">
-                        <button onclick="showAdminTab('add')" id="tabAdd" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600">
-                            ➕ Add a script
-                        </button>
-                        <button onclick="showAdminTab('manage')" id="tabManage" class="px-6 py-3 font-semibold text-gray-600 hover:text-purple-600">
-                            🗑️ Manage scripts (${data.length})
-                        </button>
-                        <button onclick="showAdminTab('import')" id="tabImport" class="px-6 py-3 font-semibold text-gray-600 hover:text-purple-600">
-                            📤 Import/Export
-                        </button>
-                    </div>
-
-                    <div id="adminTabContent"></div>
+    // Générer le HTML de la page admin
+    document.getElementById("content").innerHTML = `
+        <section class="max-w-6xl mx-auto py-12 px-4 animate-fade-in">
+            <div class="bg-white rounded-xl shadow-xl p-8 mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">🔐 Administration (${user.email})</h2>
+                
+                <div class="flex gap-4 mb-6 border-b">
+                    <button onclick="showAdminTab('add')" id="tabAdd" class="px-6 py-3 font-semibold text-gray-600 hover:text-purple-600">
+                        ➕ Add a script
+                    </button>
+                    <button onclick="showAdminTab('manage')" id="tabManage" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600">
+                        🗂️ Manage scripts (${data.length})
+                    </button>
+                    <button onclick="showAdminTab('import')" id="tabImport" class="px-6 py-3 font-semibold text-gray-600 hover:text-purple-600">
+                        📤 Import/Export
+                    </button>
                 </div>
-            </section>
-        `;
 
-        window.adminScripts = data;
-        // Affiche l'onglet "Ajouter un script" par défaut
-        showAdminTab('add'); 
-    });
+                <div id="adminTabContent"></div>
+            </div>
+        </section>
+    `;
+
+    // ✅ Sauvegarder les scripts dans une variable globale
+    window.adminScripts = data;
+    
+    // ✅ Afficher l'onglet "Manage" par défaut après une mise à jour
+    showAdminTab('manage'); 
 }
 
 function showAdminTab(tab) {
@@ -1517,31 +1501,77 @@ function showAdminTab(tab) {
 
   // --- ONGLET 3 : IMPORT / EXPORT ---
   } else if (tab === 'import') {
+    loadFilesHistory(); // Charger l'historique des fichiers
+    
     content.innerHTML = `
       <div class="space-y-6">
-        <div class="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center">
-          <input type="file" id="fileInput" accept=".json,.sql" class="hidden" onchange="handleFileImport(event)" />
-          <button onclick="document.getElementById('fileInput').click()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
-            📁 Choose a file to import
-          </button>
-          <p class="text-gray-600 mt-4">Accepted formats: JSON, SQL</p>
+        
+        <!-- Section Import -->
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border-2 border-purple-200">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            📤 Importer des fichiers
+          </h3>
+          
+          <div class="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center bg-white">
+            <input 
+              type="file" 
+              id="fileInput" 
+              accept=".json,.sql" 
+              multiple
+              class="hidden" 
+              onchange="handleMultipleFileImport(event)" 
+            />
+            <button 
+              onclick="document.getElementById('fileInput').click()" 
+              class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium shadow-lg">
+              📁 Choisir un ou plusieurs fichiers
+            </button>
+            <p class="text-gray-600 mt-4">Formats acceptés: JSON, SQL</p>
+            <p class="text-sm text-gray-500 mt-2">Vous pouvez sélectionner plusieurs fichiers à la fois</p>
+          </div>
+
+          <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+            <h4 class="font-bold text-gray-800 mb-2">💡 Formats supportés:</h4>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• <strong>JSON</strong>: Export complet avec métadonnées</li>
+              <li>• <strong>SQL</strong>: Fichier SQL avec commentaires</li>
+            </ul>
+          </div>
         </div>
 
-        <div class="bg-blue-50 p-6 rounded-xl">
-          <h3 class="font-bold text-gray-800 mb-2">💡 Supported formats:</h3>
-          <ul class="text-sm text-gray-700 space-y-1">
-            <li>• <strong>JSON</strong>: Complete export with metadata</li>
-            <li>• <strong>SQL</strong>: SQL file with comments</li>
-          </ul>
-        </div>
-
-        <div class="bg-green-50 p-6 rounded-xl">
-          <h3 class="font-bold text-gray-800 mb-3">📥 Export all scripts</h3>
-          <p class="text-sm text-gray-700 mb-4">Download all your scripts with favorites and metadata in JSON format</p>
-          <button onclick="exportUserData()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
-            📥 Export all data
+        <!-- Section Export -->
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-200">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            📥 Exporter tous les scripts
+          </h3>
+          <p class="text-sm text-gray-700 mb-4">
+            Téléchargez tous vos scripts avec favoris et métadonnées au format JSON
+          </p>
+          <button 
+            onclick="exportUserData()" 
+            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium shadow-lg">
+            📥 Exporter toutes les données
           </button>
         </div>
+
+        <!-- Historique des fichiers importés -->
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              📋 Historique des fichiers importés
+            </h3>
+            <button 
+              onclick="loadFilesHistory()" 
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm">
+              🔄 Actualiser
+            </button>
+          </div>
+          
+          <div id="filesHistoryContainer" class="space-y-3">
+            <p class="text-center text-gray-500 py-4">Chargement...</p>
+          </div>
+        </div>
+
       </div>
     `;
   }
@@ -1631,7 +1661,7 @@ async function editScriptDetails(scriptId) {
                 </div>
 
                 <div class="flex justify-end space-x-4 pt-4 border-t">
-                    <button type="button" onclick="showAdmin()" class="px-4 py-2 bg-gray-200 rounded text-gray-700 hover:bg-gray-300">Annuler</button>
+                    <button type="button" onclick="showAdmin()" class="px-4 py-2 bg-gray-200 rounded text-gray-700 hover:bg-gray-300">Cancel</button>
                     <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-700">Enregistrer les modifications</button>
                 </div>
             </form>
@@ -1647,12 +1677,12 @@ function showContributorAddForm() {
     content.innerHTML = `
       <section class="max-w-3xl mx-auto py-12 px-4 animate-fade-in">
         <div class="bg-white rounded-xl shadow-xl p-8">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">➕ Proposer un nouveau script</h2>
-            <p class="mb-6 text-blue-600 bg-blue-50 p-3 rounded">ℹ️ Votre script sera soumis à validation avant d'être visible par tous.</p>
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">➕ Suggest a new script</h2>
+            <p class="mb-6 text-blue-600 bg-blue-50 p-3 rounded">ℹ️ Your script will be submitted for validation before being visible to everyone.</p>
             
             <form onsubmit="addScript(event)" class="space-y-4">
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Titre *</label>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
                   <input name="title" type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" />
                 </div>
 
@@ -1665,7 +1695,7 @@ function showContributorAddForm() {
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Catégorie *</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
                     <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
                       ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
                     </select>
@@ -1685,8 +1715,8 @@ function showContributorAddForm() {
                 <input name="tags" type="hidden" value="" />
 
                 <div class="flex gap-3 pt-4">
-                  <button type="submit" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">🚀 Soumettre le script</button>
-                  <button type="button" onclick="showHome()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Annuler</button>
+                  <button type="submit" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">🚀 add </button>
+                  <button type="button" onclick="showHome()" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"> Cancel </button>
                 </div>
             </form>
         </div>
@@ -1704,21 +1734,20 @@ async function updateScript(e) {
     const user = session?.user;
     
     // Vérification stricte du rôle
-if (!user || userRole !== 'admin') { // <-- CORRECTION ICI : Remplacer user.user_metadata?.role par userRole
-    showToast("❌ Erreur. Rôle Admin requis pour modifier/valider.", "error");
-    return;
-}
+    if (!user || userRole !== 'admin') {
+        showToast("❌ Erreur. Rôle Admin requis pour modifier/valider.", "error");
+        return;
+    }
     
     const f = e.target;
-    // L'ID du script doit être lu depuis un champ caché dans le formulaire (scriptId)
-    const scriptId = f.scriptId?.value; // Utilisation de ?. pour être robuste
+    const scriptId = f.scriptId?.value;
     
     if (!scriptId) {
         showToast("❌ Erreur critique : ID du script manquant.", "error");
         return;
     }
 
-    // 2. Construction de l'objet de mise à jour (SANS LIRE PREREQUIS ET NOTES)
+    // 2. Construction de l'objet de mise à jour
     const updatedScript = {
         title: f.title.value.trim(),
         database: f.database.value,
@@ -1726,12 +1755,9 @@ if (!user || userRole !== 'admin') { // <-- CORRECTION ICI : Remplacer user.user
         code: f.code.value.trim(),
         description: f.description.value.trim(),
         tags: f.tags.value.split(',').map(t => t.trim()).filter(t => t),
-        
-        // 🛑 CORRECTION : Champs exclus du formulaire -> fixés à '' 🛑
         prerequis: '', 
         notes: '', 
-        
-        visibility: f.visibility.value, // Champ géré par l'Admin
+        visibility: f.visibility.value,
         updated_at: new Date().toISOString()
     };
 
@@ -1741,7 +1767,6 @@ if (!user || userRole !== 'admin') { // <-- CORRECTION ICI : Remplacer user.user
         .eq('id', scriptId);
 
     if (error) {
-        // Cela peut encore arriver si la RLS UPDATE n'autorise pas l'admin à écrire
         showToast("❌ Échec de la mise à jour : Vérifiez la RLS UPDATE.", "error");
         console.error("Update Error:", error);
     } else {
@@ -1752,10 +1777,16 @@ if (!user || userRole !== 'admin') { // <-- CORRECTION ICI : Remplacer user.user
         
         showToast(message, "success");
         
-        // Recharger la vue d'administration
-        setTimeout(() => showAdminTab('manage'), 1500); 
+        // ✅ CORRECTION : Redirection vers l'onglet "Manage scripts"
+        setTimeout(() => {
+            showAdmin(); // Recharger la page admin
+            setTimeout(() => {
+                showAdminTab('manage'); // Afficher l'onglet "Gérer les scripts"
+            }, 100); // Petit délai pour laisser showAdmin() se charger
+        }, 1000); // Délai pour voir le toast
     }
 }
+
 function filterAdminScripts(query) {
   const scripts = window.adminScripts || [];
   const searchTerm = query.toLowerCase();
@@ -1804,7 +1835,7 @@ function filterAdminScripts(query) {
 }
 
 function confirmDeleteScript(id, title) {
-  if (!confirm(`⚠️ Êtes-vous sûr de vouloir supprimer le script:\n\n"${title}"\n\nCette action est irréversible.`)) {
+  if (!confirm(`⚠️ Are you sure you want to delete the script:\n\n\"${title}\"\n\nThis action is irreversible..`)) {
     return;
   }
   deleteScript(id);
@@ -1893,4 +1924,396 @@ function showToast(message, type = "success") {
     toast.style.transform = "translateX(100%)";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+
+// ==========================================
+// FONCTION : Import multiple de fichiers
+// ==========================================
+
+async function handleMultipleFileImport(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const results = {
+    success: 0,
+    failed: 0,
+    details: []
+  };
+
+  showToast(`📤 Import de ${files.length} fichier(s) en cours...`, "success");
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    try {
+      const result = await processFileImport(file);
+      if (result.success) {
+        results.success++;
+        results.details.push(`✅ ${file.name}: ${result.message}`);
+      } else {
+        results.failed++;
+        results.details.push(`❌ ${file.name}: ${result.error}`);
+      }
+    } catch (error) {
+      results.failed++;
+      results.details.push(`❌ ${file.name}: ${error.message}`);
+    }
+  }
+
+  // Afficher le résumé
+  const summary = `
+    📊 Import terminé:
+    ✅ Réussis: ${results.success}
+    ❌ Échoués: ${results.failed}
+  `;
+  
+  showToast(summary, results.failed === 0 ? "success" : "error");
+  
+  console.log("Détails de l'import:", results.details);
+  
+  // Recharger l'historique et la liste des scripts
+  loadFilesHistory();
+  
+  // Réinitialiser l'input
+  event.target.value = '';
+}
+
+// ==========================================
+// FONCTION : Traiter un fichier individuel
+// ==========================================
+
+async function processFileImport(file) {
+  const reader = new FileReader();
+  
+  return new Promise((resolve, reject) => {
+    reader.onload = async (e) => {
+      try {
+        const content = e.target.result;
+        const fileType = file.name.endsWith('.json') ? 'json' : 'sql';
+        
+        // 1. Sauvegarder le fichier dans la table 'files'
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        const fileRecord = {
+          filename: file.name,
+          file_type: fileType,
+          file_content: content,
+          file_size: file.size,
+          uploaded_by: currentUser.id,
+          uploaded_at: new Date().toISOString(),
+          description: `Importé le ${new Date().toLocaleString('fr-FR')}`,
+          metadata: {
+            original_name: file.name,
+            size_kb: (file.size / 1024).toFixed(2)
+          }
+        };
+
+        const { error: fileError } = await supabase
+          .from('files')
+          .insert(fileRecord);
+
+        if (fileError) {
+          resolve({ success: false, error: `Erreur DB: ${fileError.message}` });
+          return;
+        }
+
+        // 2. Traiter le contenu selon le type
+        let scriptsImported = 0;
+
+        if (fileType === 'json') {
+          const data = JSON.parse(content);
+          
+          if (data.scripts && Array.isArray(data.scripts)) {
+            for (const script of data.scripts) {
+              delete script.id; // Supprimer l'ID pour éviter les conflits
+              
+              const { error: scriptError } = await supabase
+                .from('scripts')
+                .insert({
+                  ...script,
+                  added_by: currentUser.email,
+                  visibility: 'public', // ou 'pending' selon votre logique
+                  created_at: new Date().toISOString()
+                });
+              
+              if (!scriptError) scriptsImported++;
+            }
+          }
+        } else if (fileType === 'sql') {
+          // Parser les métadonnées du fichier SQL
+          const lines = content.split('\n');
+          let title = file.name.replace('.sql', '');
+          let database = 'Oracle';
+          let category = 'DATABASE INFO';
+          let description = '';
+
+          lines.forEach(line => {
+            if (line.startsWith('--')) {
+              const comment = line.substring(2).trim();
+              if (comment.toLowerCase().startsWith('title:')) 
+                title = comment.substring(6).trim();
+              if (comment.toLowerCase().startsWith('database:')) 
+                database = comment.substring(9).trim();
+              if (comment.toLowerCase().startsWith('category:')) 
+                category = comment.substring(9).trim();
+              if (comment.toLowerCase().startsWith('description:')) 
+                description = comment.substring(12).trim();
+            }
+          });
+
+          const { error: scriptError } = await supabase
+            .from('scripts')
+            .insert({
+              title,
+              database,
+              category,
+              code: content,
+              description,
+              added_by: currentUser.email,
+              visibility: 'public',
+              created_at: new Date().toISOString()
+            });
+
+          if (!scriptError) scriptsImported = 1;
+        }
+
+        resolve({ 
+          success: true, 
+          message: `${scriptsImported} script(s) importé(s)` 
+        });
+
+      } catch (error) {
+        resolve({ success: false, error: error.message });
+      }
+    };
+
+    reader.onerror = () => {
+      resolve({ success: false, error: "Erreur de lecture du fichier" });
+    };
+
+    reader.readAsText(file);
+  });
+}
+
+// ==========================================
+// FONCTION : Charger l'historique des fichiers
+// ==========================================
+
+async function loadFilesHistory() {
+  const container = document.getElementById('filesHistoryContainer');
+  
+  if (!container) return;
+
+  container.innerHTML = '<p class="text-center text-gray-500 py-4">Chargement...</p>';
+
+  const { data: files, error } = await supabase
+    .from('files')
+    .select('*')
+    .order('uploaded_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    container.innerHTML = `
+      <div class="text-center py-8 text-red-500">
+        <p>❌ Erreur de chargement: ${error.message}</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (!files || files.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8 text-gray-500">
+        <div class="text-4xl mb-2">📁</div>
+        <p>Aucun fichier importé pour le moment</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = files.map(file => {
+    const icon = file.file_type === 'json' ? '📄' : '📜';
+    const sizeKB = (file.file_size / 1024).toFixed(2);
+    const date = new Date(file.uploaded_at).toLocaleString('fr-FR');
+
+    return `
+      <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-purple-400 transition">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-2xl">${icon}</span>
+              <h4 class="font-bold text-gray-800">${escapeHtml(file.filename)}</h4>
+              <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">${file.file_type.toUpperCase()}</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-1">${escapeHtml(file.description || '')}</p>
+            <div class="flex items-center gap-4 text-xs text-gray-500">
+              <span>📅 ${date}</span>
+              <span>💾 ${sizeKB} KB</span>
+              <span>👤 ${escapeHtml(file.uploaded_by || 'Inconnu')}</span>
+            </div>
+          </div>
+          
+          <div class="flex gap-2 ml-4">
+            <button 
+              onclick="viewFileContent(${file.id})" 
+              class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+              title="Voir le contenu">
+              👁️ Voir
+            </button>
+            <button 
+              onclick="downloadFile(${file.id}, '${escapeHtml(file.filename)}')" 
+              class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+              title="Télécharger">
+              ⬇️
+            </button>
+            <button 
+              onclick="deleteFile(${file.id})" 
+              class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+              title="Supprimer">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// FONCTION : Voir le contenu d'un fichier
+// ==========================================
+
+async function viewFileContent(fileId) {
+  const { data: file, error } = await supabase
+    .from('files')
+    .select('*')
+    .eq('id', fileId)
+    .single();
+
+  if (error || !file) {
+    showToast("❌ Erreur de chargement du fichier", "error");
+    return;
+  }
+
+  // Stocker le fichier dans une variable globale pour les boutons
+  window.currentViewFile = file;
+
+  const content = document.getElementById("content");
+  
+  content.innerHTML = `
+    <section class="max-w-5xl mx-auto py-12 px-4 animate-fade-in">
+      <button onclick="showAdmin(); setTimeout(() => showAdminTab('import'), 100)" 
+        class="mb-6 px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition font-medium">
+        ← Retour à l'import/export
+      </button>
+      
+      <div class="bg-white rounded-xl shadow-xl p-8">
+        <div class="mb-6">
+          <h2 class="text-3xl font-bold text-gray-800 mb-2">
+            ${file.file_type === 'json' ? '📄' : '📜'} ${escapeHtml(file.filename)}
+          </h2>
+          <div class="flex items-center gap-4 text-sm text-gray-600">
+            <span>📅 ${new Date(file.uploaded_at).toLocaleString('fr-FR')}</span>
+            <span>💾 ${(file.file_size / 1024).toFixed(2)} KB</span>
+            <span>📝 ${file.file_type.toUpperCase()}</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+          <pre><code class="language-${file.file_type === 'json' ? 'json' : 'sql'} text-sm">${escapeHtml(file.file_content)}</code></pre>
+        </div>
+
+        <div class="mt-6 flex gap-3">
+          <button 
+            onclick="downloadFileFromView()"
+            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+            📥 Télécharger
+          </button>
+          <button 
+            onclick="copyFileContentFromView()"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+            📋 Copier
+          </button>
+        </div>
+      </div>
+    </section>
+  `;
+
+  // Highlight syntax
+  setTimeout(() => {
+    document.querySelectorAll('pre code').forEach((block) => {
+      hljs.highlightElement(block);
+    });
+  }, 100);
+}
+
+// Fonctions auxiliaires pour les boutons de viewFileContent
+function downloadFileFromView() {
+  if (!window.currentViewFile) return;
+  const file = window.currentViewFile;
+  const blob = new Blob([file.file_content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("📥 Fichier téléchargé!", "success");
+}
+
+function copyFileContentFromView() {
+  if (!window.currentViewFile) return;
+  navigator.clipboard.writeText(window.currentViewFile.file_content)
+    .then(() => showToast('📋 Contenu copié!', 'success'))
+    .catch(() => showToast('❌ Erreur de copie', 'error'));
+}
+
+// ==========================================
+// FONCTION : Télécharger un fichier
+// ==========================================
+
+async function downloadFile(fileId, filename) {
+  const { data: file, error } = await supabase
+    .from('files')
+    .select('file_content')
+    .eq('id', fileId)
+    .single();
+
+  if (error || !file) {
+    showToast("❌ Erreur de téléchargement", "error");
+    return;
+  }
+
+  const blob = new Blob([file.file_content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showToast("📥 Fichier téléchargé!", "success");
+}
+
+// ==========================================
+// FONCTION : Supprimer un fichier
+// ==========================================
+
+async function deleteFile(fileId) {
+  if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer ce fichier de l'historique?\n\nNote: Les scripts déjà importés ne seront pas supprimés.")) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('files')
+    .delete()
+    .eq('id', fileId);
+
+  if (error) {
+    showToast("❌ Erreur de suppression", "error");
+  } else {
+    showToast("✅ Fichier supprimé!", "success");
+    loadFilesHistory();
+  }
 }
