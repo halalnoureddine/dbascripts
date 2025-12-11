@@ -1153,23 +1153,21 @@ async function showScriptDetail(id) {
       </button>
       
       <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
-          <div class="flex justify-between items-start mb-2">
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-2">
+          <div class="flex justify-between items-start">
             <div class="flex items-center space-x-3">
-              <span class="text-3xl">${dbIcon}</span>
-              <span class="text-3xl">${categoryIcons[script.category] || "📋"}</span>
             </div>
+			<h2 class="text-3xl font-bold mb-2">${escapeHtml(script.title)}</h2>
             <button onclick="toggleFavorite(${script.id})" class="favorite-icon text-3xl ${isFav ? 'active' : ''}" data-favorite-id="${script.id}">
               ${isFav ? '⭐' : '☆'}
             </button>
           </div>
-          <h2 class="text-3xl font-bold mb-2">${escapeHtml(script.title)}</h2>
-          <p class="text-purple-100">${escapeHtml(script.description || "")}</p>
-        </div>
+          
+          </div>
 
         <div class="p-6">
           <div class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-3">📝 SQL Code</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📝 ${escapeHtml(script.description)}</h3>
             <div class="relative">
               <pre><code id="scriptCode" class="language-sql">${escapeHtml(script.code || "")}</code></pre>
               <button onclick="copyScript()" 
@@ -1179,16 +1177,6 @@ async function showScriptDetail(id) {
             </div>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h4 class="font-semibold text-gray-700 mb-2">ℹ️ Information</h4>
-              <div class="space-y-2 text-sm">
-                <p><span class="font-medium">Database:</span> ${script.database}</p>
-                <p><span class="font-medium">Category:</span> ${script.category}</p>
-                <p><span class="font-medium">Created:</span> ${new Date(script.created_at).toLocaleDateString('en-US')}</p>
-              </div>
-            </div>
-          </div>
 
           ${script.prerequis ? `
             <div class="mb-6">
@@ -1472,7 +1460,7 @@ function showAdminTab(tab) {
                     <p class="text-sm text-gray-600 mb-2">${escapeHtml(script.description || 'No description')}</p>
                     <div class="flex items-center gap-4 text-xs text-gray-500">
                         <span>📅 ${new Date(script.created_at).toLocaleDateString('en-US')}</span>
-                        <span>👤 Ajouté par: ${escapeHtml(script.added_by || 'Unknown')}</span>
+                        <span>👤 ${escapeHtml(script.added_by || 'Unknown')}</span>
                     </div>
                   </div>
                   
@@ -1483,7 +1471,7 @@ function showAdminTab(tab) {
                     </button>
                     
                     <button onclick="editScriptDetails(${script.id})" 
-                      class="px-3 py-2 ${isPending ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-orange-700'} text-white rounded-lg transition text-sm font-bold">
+                      class="px-3 py-2 ${isPending ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-orange-700'} text-white rounded-lg transition text-sm font-bold">
                       ${isPending ? '✏️ VALIDER' : '✏️ Update'}
                     </button>
                     
