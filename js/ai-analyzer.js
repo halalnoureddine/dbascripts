@@ -1,0 +1,697 @@
+// ==========================================
+// 📄 js/ai-analyzer.js - Module d'analyse IA
+// ==========================================
+
+// Configuration des clés API
+AI_CONFIG = {
+    // Claude est déjà configuré via supabase dans votre app
+    useClaudeFromApp: true, // Utiliser l'API Claude intégrée
+    
+    // Clé Groq (gratuite) - À obtenir sur https://console.groq.com
+    groqApiKey: "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", 
+     //groqApiKey : process.env.GROQ_API_KEY,
+};
+
+// ==========================================
+// 1. DÉTECTION AUTOMATIQUE
+// ==========================================
+
+
+// ==========================================
+// NOUVELLE FONCTION : Configuration Groq simplifiée
+// ==========================================
+
+// Fonction pour configurer Groq directement dans le code
+function initializeGroqAPI() {
+    // Option 1 : Entrer la clé directement dans le code (RECOMMANDÉ)
+    // Décommentez et remplacez par votre clé :
+    // AI_CONFIG.groqApiKey = "gsk_VOTRE_CLE_GROQ_ICI";
+    
+    // Option 2 : Charger depuis localStorage
+    const savedKey = localStorage.getItem('groq_api_key');
+    if (savedKey) {
+        AI_CONFIG.groqApiKey = savedKey;
+        console.log("✅ Clé Groq chargée depuis localStorage");
+    }
+    
+    // Option 3 : Demander à l'utilisateur s'il n'y a pas de clé
+    if (!AI_CONFIG.groqApiKey) {
+        console.warn("⚠️ Aucune clé Groq configurée");
+    } else {
+        console.log("✅ Groq API configuré");
+    }
+}
+
+// Appeler au chargement
+initializeGroqAPI();
+
+// ==========================================
+// MODIFICATION : Fonction analyzeLogError
+// Utiliser Groq DIRECTEMENT (pas de fallback Claude)
+// ==========================================
+
+async function analyzeLogError(logText, selectedDbType = null) {
+    // Validation
+    if (!logText || logText.trim().length === 0) {
+        showToast("❌ Veuillez coller des logs ou une erreur à analyser", "error");
+        return null;
+    }
+    
+    // Vérifier que Groq est configuré
+    if (!AI_CONFIG.groqApiKey) {
+        showToast("❌ Veuillez configurer votre clé API Groq d'abord", "error");
+        showGroqConfigModal();
+        return null;
+    }
+    
+    // Afficher le loader
+    showLoader("🤖 Analyse en cours avec Groq...");
+    
+    try {
+        // 1. Détection automatique
+        const dbType = selectedDbType || detectDatabaseType(logText);
+        const errorCodes = extractErrorCodes(logText);
+        const keywords = extractKeywords(logText, dbType);
+        
+        console.log('Analysis started:', { dbType, errorCodes, keywords });
+        
+        // 2. Recherche en base de connaissances
+        const knownErrors = await searchKnownErrors(errorCodes);
+        
+        if (knownErrors.length > 0) {
+            console.log('Found known errors:', knownErrors);
+            hideLoader();
+            displayKnownErrorSolution(knownErrors[0], errorCodes, dbType);
+            
+            // Sauvegarder l'analyse
+            await saveAnalysis(logText, dbType, errorCodes, {
+                type: 'known_error',
+                data: knownErrors[0]
+            }, null);
+            
+            return;
+        }
+        
+        // 3. Recherche de scripts pertinents
+        const relatedScripts = await searchRelatedScripts(keywords, dbType, errorCodes);
+        console.log('Found related scripts:', relatedScripts);
+        
+        // 4. Analyse par Groq UNIQUEMENT
+        const aiAnalysis = await analyzeWithGroq(logText, dbType, errorCodes);
+        
+        hideLoader();
+        
+        if (!aiAnalysis.success) {
+            showToast("❌ Erreur lors de l'analyse IA: " + aiAnalysis.error, "error");
+            return null;
+        }
+        
+        // 5. Sauvegarder l'analyse
+        const savedAnalysis = await saveAnalysis(
+            logText, 
+            dbType, 
+            errorCodes, 
+            aiAnalysis.data, 
+            'groq',
+            relatedScripts
+        );
+        
+        // 6. Afficher les résultats
+        displayAIAnalysisResults(aiAnalysis.data, relatedScripts, 'groq');
+        
+        return {
+            dbType,
+            errorCodes,
+            keywords,
+            aiAnalysis: aiAnalysis.data,
+            relatedScripts,
+            analysisId: savedAnalysis?.id
+        };
+        
+    } catch (error) {
+        hideLoader();
+        console.error('Analysis error:', error);
+        showToast("❌ Erreur lors de l'analyse: " + error.message, "error");
+        return null;
+    }
+}
+
+// ==========================================
+// MODIFICATION : analyzeWithGroq
+// Version améliorée avec meilleur prompt
+// ==========================================
+
+async function analyzeWithGroq(logText, dbType, errorCodes) {
+    if (!AI_CONFIG.groqApiKey) {
+        return {
+            success: false,
+            provider: 'groq',
+            error: 'Clé API Groq non configurée'
+        };
+    }
+    
+    const prompt = `Tu es un expert DBA spécialisé en ${dbType || 'Oracle et SQL Server'}.
+
+LOGS À ANALYSER:
+${logText}
+
+CODES D'ERREUR DÉTECTÉS: ${errorCodes.join(', ') || 'Aucun code spécifique'}
+
+INSTRUCTIONS:
+1. Analyse ces logs en profondeur
+2. Identifie le problème principal
+3. Détermine la gravité (low/medium/high/critical)
+4. Liste les causes possibles
+5. Propose des solutions concrètes avec scripts SQL
+
+RÉPONDS UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks):
+{
+  "error_code": "Code principal ou 'Multiple' ou 'Unknown'",
+  "severity": "low ou medium ou high ou critical",
+  "title": "Titre court du problème",
+  "description": "Description détaillée du problème",
+  "root_causes": ["Cause 1", "Cause 2", "Cause 3"],
+  "solutions": [
+    {
+      "priority": 1,
+      "title": "Titre de la solution",
+      "description": "Explication détaillée de la solution",
+      "sql_script": "Script SQL complet et fonctionnel (ou null si pas applicable)"
+    }
+  ],
+  "prevention": "Comment éviter ce problème à l'avenir"
+}`;
+
+    try {
+        console.log('Calling Groq API...');
+        
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${AI_CONFIG.groqApiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",// Meilleur modèle de Groq
+                messages: [{
+                    role: "system",
+                    content: "Tu es un expert DBA. Tu réponds TOUJOURS en JSON valide, sans markdown ni backticks."
+                }, {
+                    role: "user",
+                    content: prompt
+                }],
+                temperature: 0.3, // Plus déterministe
+                max_tokens: 2000,
+                top_p: 0.9
+            })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Groq API error:', response.status, errorText);
+            throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Groq response received:', data);
+        
+        const text = data.choices[0].message.content;
+        console.log('Groq response text:', text);
+        
+        // Parser le JSON (enlever les backticks markdown si présents)
+        let cleanText = text.trim();
+        cleanText = cleanText.replace(/^```json\s*/i, '');
+        cleanText = cleanText.replace(/^```\s*/i, '');
+        cleanText = cleanText.replace(/\s*```$/i, '');
+        
+        const parsed = JSON.parse(cleanText);
+        
+        console.log('✅ Groq analysis successful:', parsed);
+        
+        return {
+            success: true,
+            provider: 'groq',
+            data: parsed
+        };
+    } catch (error) {
+        console.error('❌ Groq analysis failed:', error);
+        return {
+            success: false,
+            provider: 'groq',
+            error: error.message
+        };
+    }
+}
+
+// ==========================================
+// NOUVELLE FONCTION : Modal de configuration Groq
+// ==========================================
+
+function showGroqConfigModal() {
+    const content = document.getElementById("content");
+    
+    content.innerHTML = `
+        <section class="max-w-2xl mx-auto py-12 px-4 animate-fade-in">
+            <div class="bg-white rounded-xl shadow-2xl p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">
+                    🔑 Configuration de Groq API
+                </h2>
+                
+                <div class="bg-blue-50 p-6 rounded-lg border-2 border-blue-200 mb-6">
+                    <h3 class="font-bold text-blue-900 mb-3">📖 Comment obtenir une clé API Groq (gratuit) :</h3>
+                    <ol class="text-blue-800 space-y-2 text-sm list-decimal list-inside">
+                        <li>Allez sur <a href="https://console.groq.com" target="_blank" class="underline font-bold">console.groq.com</a></li>
+                        <li>Créez un compte (gratuit, pas de carte bancaire requise)</li>
+                        <li>Allez dans "API Keys"</li>
+                        <li>Cliquez sur "Create API Key"</li>
+                        <li>Copiez la clé (commence par "gsk_")</li>
+                        <li>Collez-la ci-dessous</li>
+                    </ol>
+                </div>
+
+                <form onsubmit="saveGroqKey(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-800 mb-2">
+                            Clé API Groq
+                        </label>
+                        <input 
+                            type="password" 
+                            id="groqKeyInput"
+                            placeholder="gsk_..."
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 font-mono"
+                            required
+                        />
+                        <p class="text-xs text-gray-500 mt-2">
+                            🔒 Votre clé sera sauvegardée localement dans votre navigateur
+                        </p>
+                    </div>
+
+                    <div class="flex gap-3 pt-4">
+                        <button 
+                            type="submit"
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-xl transition font-bold">
+                            💾 Sauvegarder et tester
+                        </button>
+                        <button 
+                            type="button"
+                            onclick="showAIAnalyzer()"
+                            class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
+                            Annuler
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-6 bg-green-50 p-4 rounded-lg border-2 border-green-200">
+                    <h4 class="font-bold text-green-900 mb-2">✅ Avantages de Groq :</h4>
+                    <ul class="text-green-800 text-sm space-y-1">
+                        <li>• 100% gratuit (14,400 requêtes/jour)</li>
+                        <li>• Ultra rapide (~300 tokens/sec)</li>
+                        <li>• Modèle Llama 3.1 (très performant)</li>
+                        <li>• Pas de carte bancaire requise</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    `;
+}
+
+// Fonction pour sauvegarder et tester la clé
+async function saveGroqKey(event) {
+    event.preventDefault();
+    
+    const keyInput = document.getElementById('groqKeyInput');
+    const apiKey = keyInput.value.trim();
+    
+    if (!apiKey.startsWith('gsk_')) {
+        showToast("❌ Clé invalide. Elle doit commencer par 'gsk_'", "error");
+        return;
+    }
+    
+    showLoader("🔍 Vérification de la clé...");
+    
+    // Tester la clé avec un appel simple
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [{
+                    role: "user",
+                    content: "Say 'OK' if you receive this"
+                }],
+                max_tokens: 10
+            })
+        });
+        
+        hideLoader();
+        
+        if (!response.ok) {
+            throw new Error("Clé API invalide");
+        }
+        
+        // Clé valide, la sauvegarder
+        AI_CONFIG.groqApiKey = apiKey;
+        localStorage.setItem('groq_api_key', apiKey);
+        
+        showToast("✅ Clé Groq configurée avec succès !", "success");
+        
+        // Retourner à l'analyseur
+        setTimeout(() => showAIAnalyzer(), 1000);
+        
+    } catch (error) {
+        hideLoader();
+        console.error('Error testing Groq key:', error);
+        showToast("❌ Clé invalide ou erreur de connexion", "error");
+    }
+}
+
+// ==========================================
+// FONCTION UTILITAIRE : Loader
+// ==========================================
+
+function showLoader(message) {
+    const loader = document.createElement('div');
+    loader.id = 'aiLoader';
+    loader.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+    loader.innerHTML = `
+        <div class="bg-white rounded-xl p-8 shadow-2xl max-w-md mx-4">
+            <div class="flex items-center gap-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent"></div>
+                <div>
+                    <p class="text-xl font-bold text-gray-800">${message}</p>
+                    <p class="text-sm text-gray-600">Cela peut prendre quelques secondes...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loader);
+}
+
+function hideLoader() {
+    const loader = document.getElementById('aiLoader');
+    if (loader) {
+        loader.remove();
+    }
+}
+
+// Détection du type de base de données
+function detectDatabaseType(logText) {
+    const oraclePatterns = [
+        /ORA-\d{5}/i,
+        /PLS-\d{5}/i,
+        /TNS-\d{5}/i,
+        /RMAN-\d{5}/i,
+        /Oracle Database/i,
+        /DBMS_/i,
+        /V\$[A-Z_]+/i,
+        /DBA_[A-Z_]+/i
+    ];
+    
+    const sqlServerPatterns = [
+        /Msg \d+/i,
+        /Error: \d+/i,
+        /SQL Server/i,
+        /Microsoft SQL/i,
+        /\[SQLSTATE \w+\]/i,
+        /sys\.dm_/i,
+        /TSQL/i,
+        /SSMS/i
+    ];
+    
+    const oracleScore = oraclePatterns.filter(p => p.test(logText)).length;
+    const sqlServerScore = sqlServerPatterns.filter(p => p.test(logText)).length;
+    
+    if (oracleScore > sqlServerScore) return 'Oracle';
+    if (sqlServerScore > oracleScore) return 'SQL Server';
+    return null; // Auto-détection impossible
+}
+
+// Extraction des codes d'erreur
+function extractErrorCodes(logText) {
+    const codes = [];
+    
+    // Patterns Oracle
+    const oraPattern = /ORA-\d{5}/g;
+    const plsPattern = /PLS-\d{5}/g;
+    const tnsPattern = /TNS-\d{5}/g;
+    
+    // Patterns SQL Server
+    const msgPattern = /Msg \d+/g;
+    const errorPattern = /Error: \d+/g;
+    
+    const oraMatches = logText.match(oraPattern) || [];
+    const plsMatches = logText.match(plsPattern) || [];
+    const tnsMatches = logText.match(tnsPattern) || [];
+    const msgMatches = logText.match(msgPattern) || [];
+    const errMatches = logText.match(errorPattern) || [];
+    
+    codes.push(...oraMatches, ...plsMatches, ...tnsMatches, ...msgMatches, ...errMatches);
+    
+    // Retourner codes uniques
+    return [...new Set(codes)];
+}
+
+// Extraction de mots-clés pour recherche
+function extractKeywords(logText, dbType) {
+    const commonKeywords = [
+        'tablespace', 'undo', 'space', 'deadlock', 'lock', 'transaction',
+        'backup', 'restore', 'performance', 'slow', 'timeout', 'connection',
+        'memory', 'disk', 'full', 'corrupt', 'error', 'failed'
+    ];
+    
+    const foundKeywords = commonKeywords.filter(kw => 
+        logText.toLowerCase().includes(kw)
+    );
+    
+    return foundKeywords;
+}
+
+// ==========================================
+// 2. RECHERCHE EN BASE DE DONNÉES
+// ==========================================
+
+// Chercher dans les erreurs connues
+async function searchKnownErrors(errorCodes) {
+    if (!errorCodes || errorCodes.length === 0) return [];
+    
+    try {
+        const { data, error } = await supabase
+            .from('known_errors')
+            .select('*')
+            .in('error_code', errorCodes);
+        
+        if (error) {
+            console.error('Error searching known errors:', error);
+            return [];
+        }
+        
+        return data || [];
+    } catch (err) {
+        console.error('Exception in searchKnownErrors:', err);
+        return [];
+    }
+}
+
+// Chercher des scripts pertinents
+async function searchRelatedScripts(keywords, dbType, errorCodes) {
+    try {
+        let query = supabase
+            .from('scripts')
+            .select('*')
+            .eq('visibility', 'public');
+        
+        if (dbType) {
+            query = query.eq('database', dbType);
+        }
+        
+        // Recherche par mots-clés
+        if (keywords && keywords.length > 0) {
+            const searchTerms = keywords.join('|');
+            query = query.or(`title.ilike.%${searchTerms}%, description.ilike.%${searchTerms}%`);
+        }
+        
+        const { data, error } = await query.limit(5);
+        
+        if (error) {
+            console.error('Error searching scripts:', error);
+            return [];
+        }
+        
+        return data || [];
+    } catch (err) {
+        console.error('Exception in searchRelatedScripts:', err);
+        return [];
+    }
+}
+
+// ==========================================
+// 3. ANALYSE PAR IA
+// ==========================================
+
+// Analyser avec Claude (API Anthropic via votre configuration)
+async function analyzeWithClaude(logText, dbType, errorCodes) {
+    const prompt = `Tu es un expert DBA spécialisé en ${dbType || 'bases de données Oracle et SQL Server'}.
+
+Analyse ces logs/erreurs et fournis un diagnostic complet :
+
+LOGS:
+\`\`\`
+${logText}
+\`\`\`
+
+CODES D'ERREUR DÉTECTÉS: ${errorCodes.join(', ') || 'Aucun'}
+
+Fournis ta réponse UNIQUEMENT au format JSON valide suivant (sans markdown, sans backticks) :
+{
+  "error_code": "Code d'erreur principal ou 'Multiple'",
+  "severity": "low|medium|high|critical",
+  "title": "Titre court et clair du problème",
+  "description": "Description détaillée du problème en français",
+  "root_causes": ["Cause 1", "Cause 2", "Cause 3"],
+  "solutions": [
+    {
+      "priority": 1,
+      "title": "Titre de la solution",
+      "description": "Description détaillée de la solution",
+      "sql_script": "-- Script SQL si applicable ou null"
+    }
+  ],
+  "prevention": "Comment éviter ce problème à l'avenir"
+}`;
+
+    try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": "VOTRE_CLE_API_ANTHROPIC", // À configurer
+                "anthropic-version": "2023-06-01"
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 2000,
+                messages: [{
+                    role: "user",
+                    content: prompt
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Claude API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const text = data.content[0].text;
+        
+        // Parser le JSON de la réponse
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+                success: true,
+                provider: 'claude',
+                data: parsed
+            };
+        }
+        
+        throw new Error('No JSON found in Claude response');
+    } catch (error) {
+        console.error('Claude analysis failed:', error);
+        return {
+            success: false,
+            provider: 'claude',
+            error: error.message
+        };
+    }
+}
+
+
+// ==========================================
+// 5. SAUVEGARDE DE L'ANALYSE
+// ==========================================
+
+async function saveAnalysis(logText, dbType, errorCodes, aiDiagnosis, aiProvider, relatedScripts = []) {
+    try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        const analysis = {
+            user_id: currentUser ? currentUser.id : null,
+            log_content: logText.substring(0, 5000), // Limiter la taille
+            database_type: dbType,
+            error_codes: errorCodes,
+            ai_provider: aiProvider || 'known_error',
+            ai_diagnosis: aiDiagnosis,
+            related_script_ids: relatedScripts.map(s => s.id),
+            created_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await supabase
+            .from('ai_log_analyses')
+            .insert(analysis)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Error saving analysis:', error);
+            return null;
+        }
+        
+        return data;
+    } catch (err) {
+        console.error('Exception in saveAnalysis:', err);
+        return null;
+    }
+}
+
+// ==========================================
+// 6. FEEDBACK UTILISATEUR
+// ==========================================
+
+async function submitAnalysisFeedback(analysisId, feedback, resolved = false, notes = '') {
+    try {
+        const { error } = await supabase
+            .from('ai_log_analyses')
+            .update({
+                feedback: feedback, // 'helpful' ou 'not_helpful'
+                resolved: resolved,
+                resolution_notes: notes
+            })
+            .eq('id', analysisId);
+        
+        if (error) {
+            console.error('Error submitting feedback:', error);
+            showToast("❌ Erreur lors de l'envoi du feedback", "error");
+            return false;
+        }
+        
+        showToast("✅ Merci pour votre feedback !", "success");
+        return true;
+    } catch (err) {
+        console.error('Exception in submitAnalysisFeedback:', err);
+        return false;
+    }
+}
+// ==========================================
+// 7. CONFIGURATION DE L'API GROQ
+// ==========================================
+
+function configureGroqAPI(apiKey) {
+    AI_CONFIG.groqApiKey = apiKey;
+    localStorage.setItem('groq_api_key', apiKey);
+    showToast("✅ Clé API Groq configurée !", "success");
+}
+
+function loadGroqAPIKey() {
+    const savedKey = localStorage.getItem('groq_api_key');
+    if (savedKey) {
+        AI_CONFIG.groqApiKey = savedKey;
+    }
+}
+
+// Charger la clé au démarrage
+loadGroqAPIKey();

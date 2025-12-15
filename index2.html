@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBA Script Manager</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0/dist/umd/supabase.min.js"></script>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+  <header class="bg-white shadow-xl sticky top-0 z-50 border-b-4 border-indigo-600 transition duration-300 ease-in-out">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="showHome()">
+          <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center text-white text-xl font-bold">
+            DS
+          </div>
+          <span class="text-gray-800 font-bold text-xl hidden sm:block">DBA Script Manager</span>
+        </div>
+
+<nav class="desktop-nav flex items-center space-x-1">
+          <button onclick="showHome()" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            🏠 Accueil
+          </button>
+          
+          <!-- Menu déroulant SCRIPTS -->
+          <div class="relative group">
+            <button class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium flex items-center gap-1">
+              📂 Scripts
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <button onclick="showCategoriesByDatabase('Oracle')" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition rounded-t-lg">
+                🗄️ Oracle
+              </button>
+              <button onclick="showCategoriesByDatabase('SQL Server')" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                ⚙️ SQL Server
+              </button>
+              <button onclick="showCategoriesByDatabase('PostgreSQL')" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition rounded-b-lg">
+                🐘 PostgreSQL
+              </button>
+            </div>
+          </div>
+          
+          <!-- Les boutons IA seront ajoutés dynamiquement par updateAIFeaturesVisibility() -->
+			
+          <button onclick="showFavorites()" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+            ⭐ Favoris
+          </button>
+		  
+          <button onclick="toggleDarkMode()" class="px-3 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition">
+            <span id="themeIcon">🌙</span>
+          </button>
+          
+          <div id="authButtonContainer">
+            <button onclick="showLogin()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">
+                🔑 Connexion
+            </button>
+          </div>
+          </nav>
+		  
+        <button onclick="toggleMobileMenu()" class="mobile-menu p-2 rounded-lg hover:bg-gray-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobileNav" class="hidden mobile-menu bg-white border-t">
+      <div class="px-4 py-2 space-y-1">
+        <button onclick="showHome(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🏠 Accueil
+        </button>
+        <button onclick="showCategoriesByDatabase('Oracle'); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🗄️ Oracle
+        </button>
+        <button onclick="showCategoriesByDatabase('SQL Server'); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          ⚙️ SQL Server
+        </button>
+
+			<button onclick="showAIAnalyzer()" class="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium">
+			🤖 Errors
+			</button>
+			<button onclick="showPerformanceAnalyzer()" class="px-4 py-2 text-gray-700 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition font-medium">
+			🔥 Performance
+			</button>
+
+        <button onclick="showFavorites(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          ⭐ Favorites
+        </button>
+		
+        <div id="mobileAuthButtonContainer">
+             <button onclick="showLogin(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg">
+                🔑 Login
+            </button>
+        </div>
+        <button onclick="toggleDarkMode(); toggleMobileMenu()" class="block w-full text-left px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">
+          🌙 
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="content" class="flex-grow"></main>
+
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50"></div>
+
+<footer class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white py-8 flex-shrink-0">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-sm">© 2025 DBA Script Manager HN</p>
+    </div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/favorites.js"></script>
+<script src="js/dashboard.js"></script> <!-- ✨ NOUVEAU FICHIER -->
+<script src="js/navigation.js"></script>
+<script src="js/scripts.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/files.js"></script>
+<script src="js/ai-analyzer.js"></script>      
+<script src="js/ai-analyzer-ui.js"></script>  
+<script src="js/ai-performance-analyzer.js"></script>      
+<script src="js/ai-performance-analyzer-ui.js"></script>
+<script src="js/ai-script-generator.js"></script>      
+<script src="js/ai-script-generator-ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

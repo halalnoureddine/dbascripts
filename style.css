@@ -207,4 +207,27 @@ body.dark-mode .btn-secondary {
 body.dark-mode .btn-secondary:hover {
   background-color: #374151 !important; /* Gray-700 */
 }
+
+/* Menu déroulant */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+.group:hover .group-hover\:visible {
+  visibility: visible;
+}
+
+/* Animations pour les cards "connexion requise" */
+.opacity-50 {
+  opacity: 0.5;
+}
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* Card Pending (script en attente) */
+.card-pending {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fbbf24 !important;
+}
+
 /* Fin du contenu de style.css */
