@@ -71,9 +71,6 @@ document.getElementById("content").innerHTML = `
             <!-- Suggestions insérées dynamiquement -->
           </div>
         </div>
-        <p class="text-center text-sm text-gray-600 mt-3">
-          💡 Appuyez sur Entrée pour rechercher, ou cliquez sur ⚙️ pour la recherche avancée
-        </p>
       </div>
 
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">✨ Fonctionnalités</h2>
@@ -423,4 +420,5 @@ function displaySearchResults(results, query) {
       </div>
     </section>
   `;
+
 }
