@@ -1,5 +1,5 @@
 // ==========================================
-// 📄 js/navigation.js - Navigation (avec Dashboard intégré)
+// 📄 js/navigation.js - Navigation (avec recherche améliorée)
 // ==========================================
 
 // Afficher la page d'accueil
@@ -11,11 +11,13 @@ async function showHome() {
     
   let actionButton = '';
   
-  if (user) {
+if (user && userRole !== 'admin') {
     actionButton = `
-      <button onclick="showContributorAddForm()" class="px-6 py-3 bg-gradient-to-r from-blue-900 to-red-100 text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border-2 border-white">
-        ➕ Ajouter un script
-      </button>`;
+      <button onclick="showContributorAddForm()" 
+        class="px-6 py-3 bg-gradient-to-r from-[#5D5FEF] to-[#CF68E1] text-white rounded-lg hover:shadow-xl transition transform hover:scale-105 font-semibold border border-white/30 flex items-center gap-2">
+  <span>➕</span> 
+  Ajouter un script
+</button>`;
   } 
 
 
@@ -48,14 +50,30 @@ document.getElementById("content").innerHTML = `
           <input 
             type="text" 
             id="searchInput" 
-            placeholder="Search for a script..." 
-            class="w-full px-6 py-4 pr-12 text-lg border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-lg"
-            onkeyup="if(event.key === 'Enter') searchScripts()"
+            placeholder="Rechercher un script..." 
+            class="w-full px-6 py-4 pr-32 text-lg border-2 border-purple-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-lg"
+            onkeyup="handleHomeSearchInput(event)"
           />
-          <button onclick="searchScripts()" class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-            🔎
-          </button>
+          <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+            <button onclick="showAdvancedSearch()" 
+                    class="px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition text-sm font-medium"
+                    title="Recherche avancée">
+              ⚙️
+            </button>
+            <button onclick="searchScriptsEnhanced()" 
+                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+              🔎
+            </button>
+          </div>
+          
+          <!-- Suggestions pour la recherche rapide -->
+          <div id="homeSearchSuggestions" class="hidden absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border-2 border-purple-200 max-h-64 overflow-y-auto">
+            <!-- Suggestions insérées dynamiquement -->
+          </div>
         </div>
+        <p class="text-center text-sm text-gray-600 mt-3">
+          💡 Appuyez sur Entrée pour rechercher, ou cliquez sur ⚙️ pour la recherche avancée
+        </p>
       </div>
 
       <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">✨ Fonctionnalités</h2>
@@ -122,9 +140,109 @@ async function loadAndDisplayDashboard() {
     }
 }
 
+// ==========================================
+// NOUVEAU : Gestion recherche depuis l'accueil
+// ==========================================
+
+let homeSearchTimeout = null;
+
+function handleHomeSearchInput(event) {
+    const value = event.target.value;
+    
+    // Si Entrée, lancer la recherche
+    if (event.key === 'Enter') {
+        searchScriptsEnhanced();
+        return;
+    }
+    
+    // Sinon, afficher des suggestions
+    clearTimeout(homeSearchTimeout);
+    
+    if (value.length < 2) {
+        hideHomeSearchSuggestions();
+        return;
+    }
+    
+    homeSearchTimeout = setTimeout(() => {
+        generateHomeSearchSuggestions(value);
+    }, 300);
+}
+
+function generateHomeSearchSuggestions(query) {
+    const lowerQuery = query.toLowerCase();
+    const suggestions = [];
+    
+    // Suggestions rapides depuis les scripts chargés
+    if (allScriptsForSearch && allScriptsForSearch.length > 0) {
+        allScriptsForSearch.forEach(script => {
+            if (suggestions.length >= 5) return;
+            
+            if (script.title.toLowerCase().includes(lowerQuery)) {
+                suggestions.push({
+                    type: 'script',
+                    text: script.title,
+                    subtitle: `${script.database} • ${script.category}`,
+                    scriptId: script.id
+                });
+            }
+        });
+    }
+    
+    if (suggestions.length > 0) {
+        showHomeSearchSuggestions(suggestions);
+    } else {
+        hideHomeSearchSuggestions();
+    }
+}
+
+function showHomeSearchSuggestions(suggestions) {
+    const box = document.getElementById('homeSearchSuggestions');
+    if (!box) return;
+    
+    box.innerHTML = `
+        <div class="p-2">
+            ${suggestions.map(s => `
+                <div class="px-4 py-3 hover:bg-purple-50 cursor-pointer rounded-lg transition flex items-center gap-3 group"
+                     onclick="showScriptDetail(${s.scriptId})">
+                    <span class="text-2xl">📄</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-800 group-hover:text-purple-700 truncate">
+                            ${escapeHtml(s.text)}
+                        </p>
+                        <p class="text-xs text-gray-500">${s.subtitle}</p>
+                    </div>
+                </div>
+            `).join('')}
+            <div class="border-t pt-2 mt-2">
+                <button onclick="showAdvancedSearch()" class="w-full px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium text-left">
+                    ⚙️ Ouvrir la recherche avancée →
+                </button>
+            </div>
+        </div>
+    `;
+    
+    box.classList.remove('hidden');
+}
+
+function hideHomeSearchSuggestions() {
+    const box = document.getElementById('homeSearchSuggestions');
+    if (box) {
+        box.classList.add('hidden');
+    }
+}
+
+// Masquer suggestions si clic ailleurs
+document.addEventListener('click', (e) => {
+    const box = document.getElementById('homeSearchSuggestions');
+    const input = document.getElementById('searchInput');
+    
+    if (box && input && !box.contains(e.target) && e.target !== input) {
+        hideHomeSearchSuggestions();
+    }
+});
+
 // Afficher les catégories par base de données
 function showCategoriesByDatabase(dbType) {
-    // NOUVEAU : Sauvegarder le contexte de navigation
     sessionStorage.setItem('currentView', 'categories');
     sessionStorage.setItem('currentDatabase', dbType);
     
@@ -147,13 +265,11 @@ function showCategoriesByDatabase(dbType) {
                         ← Retour à l'accueil
                     </button>
                     
-                    
                     <div class="text-center mb-12">
                         <h2 class="text-4xl font-bold text-gray-800 mb-4">${dbIcon} ${dbType} Categories</h2>
                         <p class="text-gray-600">Select a category to see available scripts</p>
                     </div>
 					
-					                    <!-- NOUVEAU : Afficher le filtre ici aussi -->
                     ${renderUserScriptFilter()}
 					
                     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -177,7 +293,6 @@ function showCategoriesByDatabase(dbType) {
 
 // Charger une catégorie spécifique
 function loadCategoryByDatabase(dbType, category) {
-    // NOUVEAU : Sauvegarder le contexte de navigation
     sessionStorage.setItem('currentView', 'category');
     sessionStorage.setItem('currentDatabase', dbType);
     sessionStorage.setItem('currentCategory', category);
@@ -194,7 +309,6 @@ function loadCategoryByDatabase(dbType, category) {
                 return;
             }
 
-            // UTILISATION DE LA FONCTION CENTRALISÉE
             const scriptsToDisplay = filterScriptsByUserPreference(data);
             allScripts = scriptsToDisplay;
             filteredScripts = [...allScripts];
@@ -209,14 +323,12 @@ function loadCategoryByDatabase(dbType, category) {
                         class="mb-6 px-4 py-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition font-medium">
                         ← Back to categories
                     </button>
-                    
 
                     <div class="text-center mb-8">
                         <h2 class="text-3xl font-bold text-gray-800 mb-2">${dbIcon} ${dbType} – ${categoryIcons[category] || ""} ${category}</h2>
                         <div id="scriptsCounter"></div>
                     </div>
 
-                    <!-- NOUVEAU : Afficher le filtre ici aussi -->
                     ${renderUserScriptFilter()} 
 					
                     <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -270,31 +382,12 @@ function loadCategoryByDatabase(dbType, category) {
         });
 }
 
-// Rechercher des scripts
+// Rechercher des scripts (fonction de compatibilité)
 async function searchScripts() {
-    const query = document.getElementById("searchInput").value.toLowerCase().trim();
-    
-    if (!query) {
-        showToast("Please enter a search term", "error");
-        return;
-    }
-    
-    const { data, error } = await supabase
-        .from("scripts")
-        .select("*")
-        .or(`title.ilike.%${query}%, description.ilike.%${query}%`);
-
-    if (error) {
-        showToast("Search error", "error");
-        return;
-    }
-
-    // UTILISATION DE LA FONCTION CENTRALISÉE
-    const results = filterScriptsByUserPreference(data);
-    displaySearchResults(results, query);
+    searchScriptsEnhanced();
 }
 
-// Afficher les résultats de recherche
+// Afficher les résultats de recherche (fonction conservée pour compatibilité)
 function displaySearchResults(results, query) {
   const content = document.getElementById("content");
   

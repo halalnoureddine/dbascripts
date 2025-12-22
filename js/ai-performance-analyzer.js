@@ -7,31 +7,19 @@
 // ==========================================
 
 async function analyzePerformanceIssue(input, inputType = 'description') {
-    // Validation
     if (!input || input.trim().length === 0) {
         showToast("❌ Veuillez fournir des informations sur le problème", "error");
-        return null;
-    }
-    
-    // Vérifier que Groq est configuré
-    if (!AI_CONFIG.groqApiKey) {
-        showToast("❌ Veuillez configurer votre clé API Groq d'abord", "error");
-        showGroqConfigModal();
         return null;
     }
     
     showLoader("🔥 Analyse de performance en cours avec Groq...");
     
     try {
-        // 1. Détection du type de problème
         const perfType = detectPerformanceType(input);
-        
-        // 2. Extraction des métriques clés
         const metrics = extractPerformanceMetrics(input, inputType);
         
         console.log('Performance analysis started:', { perfType, metrics, inputType });
         
-        // 3. Analyse IA selon le type d'input
         let aiAnalysis;
         
         if (inputType === 'awr') {
@@ -41,7 +29,6 @@ async function analyzePerformanceIssue(input, inputType = 'description') {
         } else if (inputType === 'slow_query') {
             aiAnalysis = await analyzeSlowQueryWithGroq(input, metrics);
         } else {
-            // Description générale
             aiAnalysis = await analyzeGeneralPerformanceWithGroq(input, perfType, metrics);
         }
         
@@ -52,13 +39,11 @@ async function analyzePerformanceIssue(input, inputType = 'description') {
             return null;
         }
         
-        // 4. Recherche de scripts pertinents dans la base
         const relatedScripts = await searchPerformanceScripts(
             aiAnalysis.data.bottleneck_type,
             aiAnalysis.data.database_type
         );
         
-        // 5. Sauvegarder l'analyse
         const savedAnalysis = await savePerformanceAnalysis(
             input,
             inputType,
@@ -67,7 +52,6 @@ async function analyzePerformanceIssue(input, inputType = 'description') {
             relatedScripts
         );
         
-        // 6. Afficher les résultats
         displayPerformanceAnalysisResults(aiAnalysis.data, relatedScripts, metrics);
         
         return {
@@ -127,30 +111,19 @@ function extractPerformanceMetrics(input, inputType) {
         top_sql: []
     };
     
-    // Extraction CPU (%)
     const cpuMatch = input.match(/cpu[:\s]+(\d+(?:\.\d+)?)%/i);
     if (cpuMatch) metrics.cpu_usage = parseFloat(cpuMatch[1]);
     
-    // Extraction Memory (%)
     const memMatch = input.match(/memory[:\s]+(\d+(?:\.\d+)?)%/i);
     if (memMatch) metrics.memory_usage = parseFloat(memMatch[1]);
     
-    // Extraction I/O Wait
     const ioMatch = input.match(/io.*wait[:\s]+(\d+(?:\.\d+)?)/i);
     if (ioMatch) metrics.io_wait = parseFloat(ioMatch[1]);
     
-    // Extraction Response Time
     const rtMatch = input.match(/response.*time[:\s]+(\d+(?:\.\d+)?)\s*(ms|sec|seconds?)/i);
     if (rtMatch) {
         metrics.response_time = parseFloat(rtMatch[1]);
         if (rtMatch[2].startsWith('sec')) metrics.response_time *= 1000;
-    }
-    
-    // Extraction Wait Events (Oracle)
-    const waitEventPattern = /wait event[:\s]+([\w\s]+)/gi;
-    let match;
-    while ((match = waitEventPattern.exec(input)) !== null) {
-        metrics.wait_events.push(match[1].trim());
     }
     
     return metrics;
@@ -161,12 +134,11 @@ function extractPerformanceMetrics(input, inputType) {
 // ==========================================
 
 async function analyzeAWRWithGroq(awrReport, metrics) {
-    // Limiter la taille pour Groq (max ~12000 caractères pour garder de la marge)
     const reportPreview = awrReport.length > 12000 
         ? awrReport.substring(0, 12000) + '\n\n[... Rapport tronqué pour analyse ...]'
         : awrReport;
     
-    const prompt = `Tu es un expert DBA Oracle spécialisé dans l'analyse de rapports AWR (Automatic Workload Repository).
+    const prompt = `Tu es un expert DBA Oracle spécialisé dans l'analyse de rapports AWR.
 
 📊 RAPPORT AWR COMPLET À ANALYSER:
 ${reportPreview}
@@ -175,40 +147,14 @@ ${reportPreview}
 ${JSON.stringify(metrics, null, 2)}
 
 🎯 OBJECTIF DE L'ANALYSE:
-Tu dois analyser CE RAPPORT AWR COMPLET et fournir un diagnostic détaillé des problèmes de performance.
+Analyse CE RAPPORT AWR COMPLET et fournis un diagnostic détaillé des problèmes de performance.
 
 📋 INSTRUCTIONS D'ANALYSE:
-
-1. **IDENTIFICATION DES GOULOTS** (obligatoire):
-   - Analyse les sections "Top 5 Timed Events" et "Top SQL"
-   - Identifie le goulot principal : CPU, I/O, Memory, Network, Lock, ou Mixed
-   - Calcule un score de santé (0-100) basé sur les métriques du rapport
-
-2. **WAIT EVENTS** (obligatoire si présents):
-   - Liste les wait events avec % de temps
-   - Explique POURQUOI chaque wait event est problématique
-   - Identifie la CAUSE RACINE de chaque wait event
-
-3. **TOP SQL** (obligatoire si présent):
-   - Liste les requêtes les plus consommatrices
-   - Indique SQL_ID, nombre d'exécutions, temps moyen
-   - Explique le PROBLÈME de chaque requête (full scan, sorts excessifs, etc.)
-
-4. **STATISTIQUES SYSTÈME**:
-   - CPU usage, Memory usage, I/O wait, Cache Hit Ratio
-   - Extrais ces valeurs DU RAPPORT (Load Profile, Instance Statistics)
-
-5. **RECOMMANDATIONS PRIORITAIRES**:
-   - Au moins 5 recommandations concrètes
-   - Chaque recommandation doit avoir un SCRIPT SQL fonctionnel
-   - Ordonne par priorité (1 = urgent, 5 = optionnel)
-   - Catégories: sql, index, parameter, hardware, design
-
-⚠️ IMPORTANT:
-- Base ton analyse UNIQUEMENT sur les données présentes dans le rapport
-- Si une section est absente, indique "Non disponible dans ce rapport"
-- Les scripts SQL doivent être COMPLETS et FONCTIONNELS
-- Explique CLAIREMENT la cause de chaque problème détecté
+1. IDENTIFICATION DES GOULOTS (obligatoire)
+2. WAIT EVENTS (obligatoire si présents)
+3. TOP SQL (obligatoire si présent)
+4. STATISTIQUES SYSTÈME
+5. RECOMMANDATIONS PRIORITAIRES
 
 RÉPONDS UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks):
 {
@@ -265,10 +211,10 @@ RÉPONDS UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks):
     return await callGroqAPI(prompt, "Oracle AWR Analysis");
 }
 
+
 // ==========================================
 // 5. ANALYSE SQL SERVER PERFORMANCE REPORT
 // ==========================================
-
 async function analyzeSQLServerReportWithGroq(report, metrics) {
     const reportPreview = report.length > 12000 
         ? report.substring(0, 12000) + '\n\n[... Rapport tronqué pour analyse ...]'
@@ -282,110 +228,13 @@ ${reportPreview}
 📈 MÉTRIQUES EXTRAITES:
 ${JSON.stringify(metrics, null, 2)}
 
-🎯 OBJECTIF DE L'ANALYSE:
-Tu dois analyser CE RAPPORT COMPLET et fournir un diagnostic détaillé des problèmes de performance.
+[Instructions similaires à AWR mais adaptées à SQL Server...]
 
-📋 INSTRUCTIONS D'ANALYSE:
-
-1. **IDENTIFICATION DES GOULOTS** (obligatoire):
-   - Analyse les DMV (sys.dm_exec_query_stats, sys.dm_os_wait_stats)
-   - Identifie le goulot principal : CPU, I/O, Memory, Lock, Tempdb, Query, ou Mixed
-   - Calcule un score de santé (0-100)
-
-2. **WAIT STATISTICS** (obligatoire si présents):
-   - Liste les types de wait avec % de temps
-   - Explique l'IMPACT et la CAUSE de chaque wait type
-   - Types courants: PAGEIOLATCH_*, CXPACKET, LCK_M_*, WRITELOG, etc.
-
-3. **REQUÊTES LENTES** (obligatoire si sys.dm_exec_query_stats présent):
-   - Liste les requêtes les plus lentes
-   - Indique query_hash, executions, avg_duration_ms, cpu_time_ms, logical_reads
-   - Explique le PROBLÈME de chaque requête
-
-4. **INDEX MANQUANTS** (si sys.dm_db_missing_index_details présent):
-   - Liste les index recommandés par SQL Server
-   - Pour chaque index: table, colonnes, impact, CREATE INDEX complet
-   - Explique POURQUOI cet index améliorerait les performances
-
-5. **STATISTIQUES SYSTÈME**:
-   - CPU usage, Memory usage, Buffer Cache Hit Ratio, Page Life Expectancy
-   - Extrais ces valeurs DU RAPPORT
-
-6. **RECOMMANDATIONS PRIORITAIRES**:
-   - Au moins 5 recommandations concrètes
-   - Chaque recommandation doit avoir un SCRIPT SQL fonctionnel
-   - Catégories: index, statistics, parameter, query, maintenance
-
-⚠️ IMPORTANT:
-- Base ton analyse UNIQUEMENT sur les données du rapport
-- Si une DMV est absente, indique "Non disponible"
-- Les scripts CREATE INDEX doivent être COMPLETS
-- Explique CLAIREMENT pourquoi chaque problème existe
-
-RÉPONDS UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks):
-{
-  "database_type": "SQL Server",
-  "severity": "low|medium|high|critical",
-  "bottleneck_type": "cpu|io|memory|lock|tempdb|query|mixed",
-  "health_score": 0-100,
-  "title": "Résumé du problème principal",
-  "description": "Description détaillée",
-  "top_issues": [
-    {
-      "issue": "Nom du problème",
-      "impact": "high|medium|low",
-      "description": "Explication",
-      "metric_value": "Valeur mesurée"
-    }
-  ],
-  "wait_statistics": [
-    {
-      "wait_type": "Type de wait",
-      "percentage": 0-100,
-      "description": "Impact et cause"
-    }
-  ],
-  "slow_queries": [
-    {
-      "query_hash": "Hash de la requête",
-      "executions": 0,
-      "avg_duration_ms": 0,
-      "cpu_time_ms": 0,
-      "logical_reads": 0,
-      "problem": "Description"
-    }
-  ],
-  "missing_indexes": [
-    {
-      "table": "Nom de la table",
-      "equality_columns": ["col1", "col2"],
-      "inequality_columns": ["col3"],
-      "included_columns": ["col4"],
-      "impact": "high|medium|low",
-      "create_statement": "Script CREATE INDEX"
-    }
-  ],
-  "recommendations": [
-    {
-      "priority": 1-5,
-      "category": "index|statistics|parameter|query|maintenance",
-      "title": "Titre",
-      "description": "Explication",
-      "expected_impact": "Impact",
-      "implementation": "Comment faire",
-      "sql_script": "Script ou null"
-    }
-  ],
-  "system_statistics": {
-    "cpu_usage": "Pourcentage",
-    "memory_usage": "Pourcentage",
-    "buffer_cache_hit_ratio": "Pourcentage",
-    "page_life_expectancy": "Secondes"
-  }
-}`;
+RÉPONDS en JSON valide...`;
 
     return await callGroqAPI(prompt, "SQL Server Performance Analysis");
 }
+
 
 // ==========================================
 // 6. ANALYSE REQUÊTE LENTE SPÉCIFIQUE
@@ -404,11 +253,10 @@ ${JSON.stringify(metrics, null, 2)}
 
 INSTRUCTIONS:
 1. Analyse cette requête SQL
-2. Identifie les problèmes de performance (full table scan, jointures inefficaces, etc.)
+2. Identifie les problèmes de performance
 3. Détecte les index manquants
 4. Vérifie les anti-patterns SQL
-5. Propose une version optimisée de la requête
-6. Suggère des index à créer
+5. Propose une version optimisée
 
 RÉPONDS en JSON:
 {
@@ -423,13 +271,6 @@ RÉPONDS en JSON:
       "line": "Partie du code concernée",
       "impact": "high|medium|low",
       "explanation": "Pourquoi c'est un problème"
-    }
-  ],
-  "execution_plan_issues": [
-    {
-      "operation": "Type d'opération (Full Table Scan, etc.)",
-      "cost": "Coût estimé",
-      "solution": "Comment corriger"
     }
   ],
   "recommendations": [
@@ -452,7 +293,7 @@ RÉPONDS en JSON:
 // ==========================================
 
 async function analyzeGeneralPerformanceWithGroq(description, perfType, metrics) {
-    const prompt = `Tu es un expert DBA spécialisé en performance des bases de données.
+    const prompt = `Tu es un expert DBA spécialisé en performance.
 
 DESCRIPTION DU PROBLÈME:
 ${description}
@@ -465,47 +306,11 @@ ${JSON.stringify(metrics, null, 2)}
 INSTRUCTIONS:
 1. Analyse ce problème de performance
 2. Identifie la cause racine probable
-3. Détermine le type de base de données (Oracle ou SQL Server si possible)
+3. Détermine le type de base de données
 4. Évalue la gravité
-5. Propose des diagnostics à effectuer
-6. Suggère des solutions concrètes
+5. Propose des diagnostics et solutions
 
-RÉPONDS en JSON:
-{
-  "database_type": "Oracle|SQL Server|Unknown",
-  "severity": "low|medium|high|critical",
-  "bottleneck_type": "${perfType}",
-  "health_score": 0-100,
-  "title": "Résumé du problème",
-  "description": "Analyse détaillée",
-  "probable_causes": [
-    "Cause 1",
-    "Cause 2",
-    "Cause 3"
-  ],
-  "diagnostic_queries": [
-    {
-      "purpose": "Ce que cette requête vérifie",
-      "sql_script": "Requête SQL de diagnostic"
-    }
-  ],
-  "recommendations": [
-    {
-      "priority": 1-5,
-      "category": "investigation|tuning|hardware|design",
-      "title": "Titre",
-      "description": "Explication",
-      "expected_impact": "Impact attendu",
-      "implementation": "Comment faire",
-      "sql_script": "Script ou null"
-    }
-  ],
-  "next_steps": [
-    "Étape 1 à suivre",
-    "Étape 2 à suivre",
-    "Étape 3 à suivre"
-  ]
-}`;
+RÉPONDS en JSON...`;
 
     return await callGroqAPI(prompt, "General Performance Analysis");
 }
@@ -515,49 +320,18 @@ RÉPONDS en JSON:
 // ==========================================
 
 async function callGroqAPI(prompt, analysisType) {
-    if (!AI_CONFIG.groqApiKey) {
-        return {
-            success: false,
-            error: 'Clé API Groq non configurée'
-        };
-    }
-    
     try {
-        console.log(`Calling Groq API for ${analysisType}...`);
+        console.log(`📡 Calling Groq for ${analysisType}...`);
         
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${AI_CONFIG.groqApiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [{
-                    role: "system",
-                    content: "Tu es un expert DBA. Tu réponds TOUJOURS en JSON valide, sans markdown ni backticks."
-                }, {
-                    role: "user",
-                    content: prompt
-                }],
-                temperature: 0.2,
-                max_tokens: 3000,
-                top_p: 0.9
-            })
+        // Réutiliser la fonction sécurisée de ai-analyzer.js
+        const data = await callGroqSecurely(prompt, {
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.2,
+            max_tokens: 3000
         });
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Groq API error:', response.status, errorText);
-            throw new Error(`Groq API error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Groq response received');
         
         const text = data.choices[0].message.content;
         
-        // Parser le JSON
         let cleanText = text.trim();
         cleanText = cleanText.replace(/^```json\s*/i, '');
         cleanText = cleanText.replace(/^```\s*/i, '');
@@ -565,25 +339,23 @@ async function callGroqAPI(prompt, analysisType) {
         
         const parsed = JSON.parse(cleanText);
         
-        console.log('✅ Groq analysis successful');
+        console.log('✅ Analysis successful');
         
         return {
             success: true,
             data: parsed
         };
     } catch (error) {
-        console.error('❌ Groq analysis failed:', error);
+        console.error('❌ Analysis failed:', error);
         return {
             success: false,
             error: error.message
         };
     }
 }
-
 // ==========================================
 // 9. RECHERCHE SCRIPTS PERTINENTS
 // ==========================================
-
 async function searchPerformanceScripts(bottleneckType, dbType) {
     const keywords = {
         cpu: ['cpu', 'process', 'session', 'performance'],
@@ -622,6 +394,7 @@ async function searchPerformanceScripts(bottleneckType, dbType) {
     }
 }
 
+
 // ==========================================
 // 10. SAUVEGARDE ANALYSE PERFORMANCE
 // ==========================================
@@ -644,9 +417,6 @@ async function savePerformanceAnalysis(input, inputType, metrics, aiDiagnosis, r
             related_script_ids: relatedScripts.map(s => s.id),
             created_at: new Date().toISOString()
         };
-        
-        // Créer la table si elle n'existe pas encore
-        // (À faire via Supabase console)
         
         const { data, error } = await supabase
             .from('performance_analyses')

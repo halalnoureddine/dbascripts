@@ -84,33 +84,14 @@ function renderScriptCard(script) {
          onmouseleave="hideScriptPreview()">
       
       <div class="flex items-center space-x-4 flex-1 min-w-0">
-        <div class="p-3 rounded-xl bg-indigo-50 text-indigo-600 text-3xl flex-shrink-0 shadow-inner flex items-center justify-center">
-          <span class="text-2xl">${dbIcon}</span>
-        </div>
+        
         
         <div class="flex-1 min-w-0">
           <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">
             ${escapeHtml(script.title)} 
             ${isPending ? '<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-bold ml-2">⏳ PENDING</span>' : ''}
           </h3>
-          <p class="text-gray-600 text-sm mt-1 truncate">${escapeHtml(script.description || "Aucune description fournie.")}</p>
-          
-          <div class="flex items-center text-gray-400 text-xs mt-2 space-x-3">
-            <span class="flex items-center gap-1">
-              <span>${catIcon}</span>
-              <span>${script.category}</span>
-            </span>
-            <span class="flex items-center gap-1">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-              <span>${new Date(script.created_at).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-            </span>
-            ${script.added_by ? `
-              <span class="flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                <span>${escapeHtml(script.added_by)}</span>
-              </span>
-            ` : ''}
-          </div>
+         
         </div>
       </div>
 

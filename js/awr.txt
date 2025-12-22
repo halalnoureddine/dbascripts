@@ -1,0 +1,109 @@
+WORKLOAD REPOSITORY report for
+
+DB Name         DB Id    Instance     Inst Num Startup Time    Release     RAC
+------------ ----------- ------------ -------- --------------- ----------- ---
+PRODDB        1234567890 PRODDB              1 12-Dec-24 08:00 19.0.0.0.0  NO
+
+
+Snap Id      Snap Time      Sessions Curs/Sess Comment
+------- ------------------ -------- --------- -------------------
+  Begin Snap:   12345  12-Dec-24 10:00:00        45       2.3
+    End Snap:   12346  12-Dec-24 11:00:00        55       2.8
+   Elapsed:               60.00 (mins)
+   DB Time:              450.00 (mins)
+
+
+Load Profile                    Per Second    Per Transaction   Per Exec   Per Call
+~~~~~~~~~~~~~~~               --------------- ----------------- ---------- ---------
+             DB Time(s):             7.5              15.2         0.05       0.12
+              CPU time(s):           6.8              13.8         0.04       0.11
+      Executions per sec:          150.3
+      Logical read (MB):          2500.5
+
+
+Top 5 Timed Foreground Events
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                           Avg
+                                              %  wait   Call
+Event                         Waits           Time (s)  (ms)  %DB time
+---------------------------- -------- ------ --------- ------ --------
+CPU time                              86.2    23,220          85.6
+db file sequential read       125,450  8.5     2,294    18    8.5
+log file sync                  45,230  3.2       864    19    3.2
+direct path read               12,340  1.8       486    39    1.8
+db file scattered read          8,120  0.3        81    10    0.3
+
+
+SQL ordered by Elapsed Time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Elapsed      CPU                           Elap per  % Total
+  Time (s)   Time (s)  Executions  SQL Id    Exec (s)  DB Time    SQL Text
+---------- ---------- ------------ -------- ---------- -------- --------------
+    5,234      4,890        1,250  8gh4j2k1      4.19    19.3%  SELECT /*+ FULL(t) */ * FROM large_table t WHERE ...
+    3,120      2,980        8,450  9jk3h5l2      0.37    11.5%  UPDATE orders SET status = 'PROCESSED' WHERE ...
+    2,890      2,710          340  1mn6p8q3      8.50    10.7%  SELECT * FROM customer c JOIN orders o ON ...
+    1,450      1,390       15,230  2op7r9s4      0.10     5.4%  INSERT INTO audit_log VALUES (:1, :2, :3)
+      980        920        2,340  3qr8t0u5      0.42     3.6%  DELETE FROM temp_data WHERE created_date < ...
+
+
+Instance Activity Stats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Statistic                               Total     per Second    per Trans
+--------------------------------- ----------- -------------- ------------
+CPU used by this session              24,560          6.82        49.52
+DB time                               27,000          7.50        54.55
+execute count                        540,780        150.22     1,090.47
+logical reads                      9,002,340      2,500.65    18,166.35
+physical reads                       245,670         68.24       495.85
+physical writes                       12,340          3.43        24.91
+redo size                         45,234,890     12,565.25    91,287.35
+session logical reads              9,002,340      2,500.65    18,166.35
+user calls                           225,450         62.63       454.95
+
+
+Buffer Pool Advisory
+~~~~~~~~~~~~~~~~~~~~~
+                   Size Size  Buffers Est  Physical   Est Physical
+P  Pool     For Est MB Factr (Thou)   Read   Read (M)  Read Factor
+- ------- ---- ------ ----- -------- ------ ---------- ------------
+D default  SGA   2,048  .50    262.1    240      38.5        1.25
+D default  SGA   4,096 1.00    524.3    192      30.8        1.00
+D default  SGA   6,144 1.50    786.4    178      28.5        0.93
+D default  SGA   8,192 2.00  1,048.6    165      26.4        0.86
+
+
+Tablespace IO Stats
+~~~~~~~~~~~~~~~~~~~
+Tablespace            Reads  Av Rd(ms)   Writes  Av Wr(ms)  Av Buf Wt(ms)
+-------------------- ------ ------------ ------- ----------- --------------
+SYSTEM                2,340          8.5   1,230         3.2            0.5
+SYSAUX                1,890         12.3     450         4.1            0.8
+USERS               234,890         18.2  10,890         5.6            1.2
+TEMP                 45,670         25.4     120         2.3            0.3
+UNDOTBS1              8,940         10.1   8,760         3.8            0.7
+
+
+Time Model Statistics
+~~~~~~~~~~~~~~~~~~~~~~
+Statistic Name                                    Time (s) % of DB Time
+-------------------------------------------- ------------- ------------
+sql execute elapsed time                            25,680        95.1
+DB CPU                                              23,220        86.0
+parse time elapsed                                   1,240         4.6
+hard parse elapsed time                                890         3.3
+PL/SQL execution elapsed time                          450         1.7
+connection management call elapsed time                 85         0.3
+
+
+Memory Statistics
+~~~~~~~~~~~~~~~~~
+                     Begin (M)    End (M)  % Diff
+----------------- ------------ ---------- -------
+Buffer Cache              4,096      4,096    0.0
+Shared Pool              2,048      2,340   14.3  *** GROWING
+Large Pool                 256        256    0.0
+Java Pool                  128        128    0.0
+PGA Aggregate            1,024      1,890   84.6  *** GROWING
+
+
+End of Report

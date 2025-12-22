@@ -39,7 +39,6 @@ function showPerformanceAnalyzer() {
                         onclick="selectAnalysisType('description')"
                         class="analysis-type-btn p-4 rounded-lg border-2 border-purple-300 hover:border-purple-600 hover:bg-purple-50 transition"
                         data-type="description">
-                        <div class="text-3xl mb-2">📝</div>
                         <div class="font-bold text-gray-800">Description</div>
                         <div class="text-xs text-gray-600">Décrivez le problème</div>
                     </button>
@@ -48,7 +47,7 @@ function showPerformanceAnalyzer() {
                         onclick="selectAnalysisType('awr')"
                         class="analysis-type-btn p-4 rounded-lg border-2 border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition"
                         data-type="awr">
-                        <div class="text-3xl mb-2">🔶</div>
+                        
                         <div class="font-bold text-gray-800">Rapport AWR</div>
                         <div class="text-xs text-gray-600">Oracle AWR Report</div>
                     </button>
@@ -57,7 +56,7 @@ function showPerformanceAnalyzer() {
                         onclick="selectAnalysisType('sql_server_report')"
                         class="analysis-type-btn p-4 rounded-lg border-2 border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition"
                         data-type="sql_server_report">
-                        <div class="text-3xl mb-2">🔷</div>
+                       
                         <div class="font-bold text-gray-800">Rapport SQL Server</div>
                         <div class="text-xs text-gray-600">Performance Report</div>
                     </button>
@@ -66,7 +65,7 @@ function showPerformanceAnalyzer() {
                         onclick="selectAnalysisType('slow_query')"
                         class="analysis-type-btn p-4 rounded-lg border-2 border-gray-300 hover:border-purple-600 hover:bg-purple-50 transition"
                         data-type="slow_query">
-                        <div class="text-3xl mb-2">🐌</div>
+                        
                         <div class="font-bold text-gray-800">Requête Lente</div>
                         <div class="text-xs text-gray-600">Analyser une requête SQL</div>
                     </button>
@@ -80,7 +79,7 @@ function showPerformanceAnalyzer() {
                     <button 
                         onclick="handlePerformanceAnalysis()"
                         class="flex-1 px-6 py-4 bg-gradient-to-r from-yellow-300 to-red-300 text-white rounded-lg hover:shadow-x1 transition font-bold text-lg">
-                        🔥 Analyser la Performance
+                        🔥 Analyser 
                     </button>
 
                     <button 
