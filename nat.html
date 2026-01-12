@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préparation Citoyenneté Française</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0055A4 0%, #EF4135 50%, #FFFFFF 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .faq-item {
+            margin-bottom: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .question {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.05em;
+            transition: all 0.3s ease;
+        }
+
+        .question:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .question::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+
+        .question.active::after {
+            transform: rotate(180deg);
+        }
+
+        .answer {
+            max-height: 0;
+            overflow: hidden;
+            background: #f8f9fa;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+            padding: 0 20px;
+        }
+
+        .answer.active {
+            max-height: 2000px;
+            padding: 20px;
+        }
+
+        .answer-content {
+            color: #333;
+            font-size: 1em;
+        }
+
+        .answer-content h3 {
+            color: #667eea;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .answer-content ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .answer-content li {
+            margin-bottom: 8px;
+        }
+
+        .answer-content strong {
+            color: #764ba2;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .question {
+                padding: 15px;
+                font-size: 0.95em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇫🇷 Préparation Citoyenneté Française</h1>
+            <p>Questions et Réponses - Entretien de Naturalisation</p>
+        </div>
+
+        <div class="content">
+            <!-- Question 1: La Charte -->
+            <div class="faq-item">
+                <div class="question">Qu'est-ce que la Charte des droits et devoirs du citoyen français ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>La Charte des droits et devoirs du citoyen français rappelle les <strong>principes</strong> et les <strong>valeurs fondamentaux de la République française</strong> et les <strong>engagements</strong> que doit respecter toute personne qui devient française.</p>
+                        <p>Parmi ces valeurs de la République, on retrouve :</p>
+                        <ul>
+                            <li>La Liberté</li>
+                            <li>L'Égalité</li>
+                            <li>La Fraternité</li>
+                            <li>La Laïcité</li>
+                        </ul>
+                        <p>Elle rappelle aussi les droits et les devoirs du citoyen tels que le droit de vote, la liberté d'expression, le respect des lois et le paiement des impôts.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 2: Droits et Devoirs -->
+            <div class="faq-item">
+                <div class="question">Quels sont les principaux droits et devoirs du citoyen français ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <h3>Droits :</h3>
+                        <ul>
+                            <li><strong>Droit de vote</strong> : Possibilité de choisir ses représentants aux élections</li>
+                            <li><strong>Liberté d'expression</strong> : Droit de critiquer et de débattre librement</li>
+                            <li><strong>Protection par la loi</strong> : Être protégé par la loi</li>
+                            <li><strong>Droit à l'éducation</strong> : Accès gratuit à l'enseignement public</li>
+                            <li><strong>Protection sociale</strong> : Accès aux soins, aux allocations chômage et à la retraite</li>
+                        </ul>
+                        <h3>Devoirs :</h3>
+                        <ul>
+                            <li>Respect des lois</li>
+                            <li>Respecter la liberté des autres citoyens et les valeurs de la république</li>
+                            <li>Paiement des impôts pour financer les services publics</li>
+                            <li>Participer à la défense nationale</li>
+                            <li>Participer à la vie démocratique</li>
+                        </ul>
+                        <p><em>La France est une république indivisible, laïque, démocratique et sociale.</em></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 3: Devise -->
+            <div class="faq-item">
+                <div class="question">Quelle est la devise de la France et que signifie-t-elle ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>La devise de la France est : <strong>Liberté, Égalité, Fraternité</strong></p>
+                        <ul>
+                            <li><strong>Liberté</strong> : Chaque citoyen est libre de penser, de s'exprimer et d'agir, tant qu'il respecte la loi et la liberté d'autrui (Liberté d'expression)</li>
+                            <li><strong>Égalité</strong> : Tous les citoyens sont égaux devant la loi, sans distinction d'origine, de sexe ou de religion (Mêmes droits pour les hommes et les femmes)</li>
+                            <li><strong>Fraternité</strong> : La solidarité et l'entraide entre les membres de la communauté nationale (Aide aux personnes en difficulté)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 4: Symboles -->
+            <div class="faq-item">
+                <div class="question">Quels sont les symboles de la République française ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <ul>
+                            <li>L'emblème national est le <strong>drapeau tricolore bleu, blanc, rouge</strong></li>
+                            <li>L'hymne national est <strong>La Marseillaise</strong></li>
+                            <li>La devise de la République est <strong>Liberté, Égalité, Fraternité</strong></li>
+                            <li>La fête nationale est le <strong>14 Juillet</strong></li>
+                            <li><strong>Marianne</strong> est la représentation symbolique de la République</li>
+                            <li><strong>Le coq gaulois</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 5: Laïcité -->
+            <div class="faq-item">
+                <div class="question">Qu'est-ce que la laïcité ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>La laïcité est le principe de séparation entre l'État et les religions. Chacun est libre de croire ou de ne pas croire, de changer de religion et de pratiquer sa religion, tant que cela respecte la loi et l'ordre public.</p>
+                        <p>C'est une valeur importante car elle garantit le respect, l'égalité et la liberté de tous.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 6: IVG -->
+            <div class="faq-item">
+                <div class="question">Qu'est-ce que l'IVG ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>L'IVG, ou interruption volontaire de grossesse, est un droit légal en France. Elle permet aux femmes de décider librement de poursuivre ou non une grossesse.</p>
+                        <p>Ce droit est encadré par la loi et repose sur le respect de la liberté individuelle, de la santé et de la dignité de la femme.</p>
+                        <p>L'IVG a été adoptée en 1975 à l'initiative de <strong>Simone Veil</strong>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 7: Simone Veil -->
+            <div class="faq-item">
+                <div class="question">Qui est Simone Veil ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Simone Veil est une femme politique française. Elle a fait voter la loi légalisant l'IVG en 1975. Elle a aussi été présidente du Parlement européen et une grande figure des droits des femmes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 8: Charlie Hebdo -->
+            <div class="faq-item">
+                <div class="question">Que représente Charlie Hebdo pour la liberté d'expression ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p><strong>Charlie Hebdo</strong> est un journal satirique français utilisant la caricature pour traiter de sujets politiques et religieux. En brisant les tabous, il incarne la <strong>liberté d'expression</strong>, une valeur pilier de la République.</p>
+                        <p>En <strong>janvier 2015</strong>, le journal a été la cible d'attentats terroristes. La mobilisation mondiale qui a suivi, sous le slogan "Je suis Charlie", a réaffirmé l'attachement des citoyens à la liberté de la presse et au refus de la violence.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 9: Mariage pour tous -->
+            <div class="faq-item">
+                <div class="question">Qu'est-ce que le mariage pour tous ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Le mariage pour tous est autorisé en France depuis 2013. Il permet aux couples de même sexe de se marier avec les mêmes droits et devoirs que les autres couples.</p>
+                        <p>Cette loi garantit l'égalité devant la loi et le respect de la liberté individuelle.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 10: Temps libre -->
+            <div class="faq-item">
+                <div class="question">Que faites-vous pendant votre temps libre ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Pendant mon temps libre, je fais du footing et du vélo. Je lis aussi des livres de développement personnel comme "Miracle Morning" de Hal Elrod et "Le Pouvoir du moment présent" d'Eckhart Tolle.</p>
+                        <p>Je travaille également sur un projet d'intelligence artificielle : je développe mon propre LLM afin de faciliter le travail des administrateurs de bases de données.</p>
+                        <p>Côté associatif, je participe de manière amicale au club Montmagny Handball, où mes enfants sont inscrits : je les aide à s'entraîner, je les accompagne aux entraînements et aux matchs, et je tiens la buvette de temps en temps.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 11: Activités avec l'épouse -->
+            <div class="faq-item">
+                <div class="question">Quelles activités partagez-vous avec votre épouse ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Avec mon épouse, on partage beaucoup d'activités. On fait du sport ensemble dans notre petit espace à la maison : vélo, tapis roulant, échauffements.</p>
+                        <p>Et parfois, quand ma belle-sœur peut garder nos enfants, on en profite pour sortir dîner, soit avec nos amis, soit juste en amoureux.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 12: Activités des enfants -->
+            <div class="faq-item">
+                <div class="question">Quelles activités font vos enfants ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>On essaie toujours de proposer des activités à nos filles. J'en ai trois : Tasnime, 11 ans, et Assile, 7 ans, qui ont fait deux ans de natation et qui pratiquent le handball jusqu'à aujourd'hui.</p>
+                        <p>Assile a aussi fait de la danse, et cette année elle fait du karaté en plus du handball. On essaie vraiment de diversifier leurs activités.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 13: Traditions -->
+            <div class="faq-item">
+                <div class="question">Avez-vous gardé des traditions de votre pays d'origine ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Oui, j'ai gardé certaines traditions familiales, mais elles sont compatibles avec les valeurs françaises. Je respecte les lois et la culture française.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 14: Retours au pays -->
+            <div class="faq-item">
+                <div class="question">Retournez-vous dans votre pays d'origine ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>J'y retourne occasionnellement, une fois par an ou deux fois maximum pour visiter ma mère qui est un peu âgée.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 15: Amis et entourage -->
+            <div class="faq-item">
+                <div class="question">Voyez-vous souvent des amis ? Comment est votre entourage ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Oui, je vois régulièrement des amis avec qui je travaille, souvent on fait des after-work, des brunchs.</p>
+                        <p>Je côtoie surtout des Français dans mon quotidien, notamment à travers mon travail et mes relations de voisinage. Cela m'aide à vivre pleinement la culture française et à m'y sentir intégré.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 16: Liens familiaux -->
+            <div class="faq-item">
+                <div class="question">Avez-vous des liens familiaux en France ?</div>
+                <div class="answer">
+                    <div class="answer-content">
+                        <p>Ma famille proche vit en France : mon épouse et mes enfants sont ici, et notre vie familiale est stable et bien installée.</p>
+                        <p>J'ai aussi ma belle-sœur, ainsi que mon frère et sa famille, et plusieurs de mes oncles qui vivent à Strasbourg.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Récupération de tous les éléments question
+        const questions = document.querySelectorAll('.question');
+
+        // Fonction pour fermer toutes les réponses
+        function closeAllAnswers() {
+            questions.forEach(q => {
+                q.classList.remove('active');
+                q.nextElementSibling.classList.remove('active');
+            });
+        }
+
+        // Ajout d'un écouteur d'événement sur chaque question
+        questions.forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const isActive = this.classList.contains('active');
+
+                // Ferme toutes les réponses ouvertes
+                closeAllAnswers();
+
+                // Si la question cliquée n'était pas active, on l'ouvre
+                if (!isActive) {
+                    this.classList.add('active');
+                    answer.classList.add('active');
+                }
+            });
+        });
+
+        // Animation douce au scroll
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
+        });
+
+        // Apparition progressive des éléments
+        window.addEventListener('load', () => {
+            document.querySelectorAll('.faq-item').forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.transition = 'all 0.5s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
