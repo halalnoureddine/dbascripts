@@ -98,43 +98,102 @@ document.getElementById("content").innerHTML = `
       
     </section>
 
-    <!-- 📊 DASHBOARD ANALYTICS - Section complète -->
-    <div id="dashboardContainer">
-      <div class="text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mx-auto mb-4"></div>
-        <p class="text-gray-600">Chargement du tableau de bord...</p>
-      </div>
-    </div>
+    <!-- 📊 DASHBOARD -->
+    <div id="dashboardContainer" class="max-w-6xl mx-auto px-4 pb-16 space-y-8">
 
-    <!-- Filtre utilisateur (si contributeur) -->
-    ${renderUserScriptFilter()}
+      <!-- 🕐 Derniers scripts ajoutés — pleine largeur -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <span class="text-xl">🕐</span>
+          <h3 class="text-lg font-bold text-gray-800">Derniers scripts ajoutés</h3>
+        </div>
+        <div id="recentScriptsHome" class="divide-y divide-gray-50 p-2">
+          <div class="text-center py-8 text-gray-400">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-purple-400 border-t-transparent mx-auto mb-2"></div>
+            Chargement...
+          </div>
+        </div>
+      </div>
+
+      <!-- ⭐ Scripts favoris — pleine largeur -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <span class="text-xl">⭐</span>
+          <h3 class="text-lg font-bold text-gray-800">Scripts favoris</h3>
+        </div>
+        <div id="favScriptsHome" class="divide-y divide-gray-50 p-2">
+          <div class="text-center py-8 text-gray-400">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-yellow-400 border-t-transparent mx-auto mb-2"></div>
+            Chargement...
+          </div>
+        </div>
+      </div>
+
+    </div>
   `;
   
-  // Charger le dashboard de manière asynchrone
   loadAndDisplayDashboard();
 }
 
-// Fonction pour charger et afficher le dashboard
+// Rendre une ligne de script compacte pour le dashboard
+function renderDashboardRow(script) {
+  const dbIcon = script.database === 'Oracle' ? '🗄️' : script.database === 'SQL Server' ? '⚙️' : '🐘';
+  const titleEsc = escapeHtml(script.title).replace(/'/g, "\\'");
+  const descEsc  = escapeHtml(script.description || '').replace(/'/g, "\\'");
+  return `
+    <div class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-indigo-50 cursor-pointer transition group"
+         onclick="showScriptDetail(${script.id})"
+         onmouseenter="showDescPopup(event, '${titleEsc}', '${descEsc}')"
+         onmouseleave="hideDescPopup()">
+      <span class="text-base flex-shrink-0">${dbIcon}</span>
+      <span class="text-sm font-medium text-gray-800 group-hover:text-indigo-700 truncate flex-1">${escapeHtml(script.title)}</span>
+      <span class="text-xs text-gray-400 flex-shrink-0 hidden sm:block">${script.category || ''}</span>
+    </div>
+  `;
+}
+
+// Nouveau dashboard : 10 derniers + favoris
 async function loadAndDisplayDashboard() {
-    const container = document.getElementById('dashboardContainer');
-    if (!container) return;
-    
-    try {
-        const dashboardHTML = await renderDashboard();
-        container.innerHTML = dashboardHTML;
-    } catch (error) {
-        console.error('Error rendering dashboard:', error);
-        container.innerHTML = `
-            <div class="max-w-5xl mx-auto py-12 px-4 text-center">
-                <div class="bg-red-50 border-2 border-red-200 rounded-xl p-8">
-                    <p class="text-red-600 text-lg">❌ Erreur lors du chargement du tableau de bord</p>
-                    <button onclick="loadAndDisplayDashboard()" class="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                        🔄 Réessayer
-                    </button>
-                </div>
-            </div>
-        `;
+  // --- 10 derniers scripts ---
+  const recentEl = document.getElementById('recentScriptsHome');
+  try {
+    const { data: recent, error } = await supabase
+      .from('scripts')
+      .select('*')
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    recentEl.innerHTML = recent.length
+      ? recent.map(s => renderDashboardRow(s)).join('')
+      : `<p class="text-center text-gray-400 py-8">Aucun script disponible.</p>`;
+  } catch (e) {
+    recentEl.innerHTML = `<p class="text-center text-red-400 py-8">Erreur de chargement.</p>`;
+  }
+
+  // --- Favoris ---
+  const favEl = document.getElementById('favScriptsHome');
+  try {
+    const favIds = favorites || [];
+    if (favIds.length === 0) {
+      favEl.innerHTML = `<p class="text-center text-gray-400 py-8">⭐ Aucun favori pour l'instant.<br><span class="text-xs">Cliquez sur l'étoile d'un script pour l'ajouter.</span></p>`;
+    } else {
+      const { data: favScripts, error } = await supabase
+        .from('scripts')
+        .select('*')
+        .in('id', favIds);
+
+      if (error) throw error;
+
+      favEl.innerHTML = favScripts.length
+        ? favScripts.map(s => renderDashboardRow(s)).join('')
+        : `<p class="text-center text-gray-400 py-8">Aucun script favori trouvé.</p>`;
     }
+  } catch (e) {
+    favEl.innerHTML = `<p class="text-center text-red-400 py-8">Erreur de chargement.</p>`;
+  }
 }
 
 // ==========================================
@@ -420,5 +479,4 @@ function displaySearchResults(results, query) {
       </div>
     </section>
   `;
-
 }

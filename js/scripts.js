@@ -56,7 +56,11 @@ async function loadRecentScripts() {
         }
         
         console.log('Scripts loaded:', recentScripts);
-        container.innerHTML = recentScripts.map(script => renderScriptCard(script)).join('');
+        container.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-1">
+            ${recentScripts.map(script => renderScriptCard(script)).join('')}
+          </div>
+        `;
     } catch (err) {
         console.error('Error loading recent scripts:', err);
         container.innerHTML = `
@@ -68,43 +72,77 @@ async function loadRecentScripts() {
 }
 
 
-// Rendre une carte de script
+// Popup description au survol
+let _descPopup = null;
+function showDescPopup(event, title, description) {
+  if (!_descPopup) {
+    _descPopup = document.createElement('div');
+    _descPopup.id = 'descPopup';
+    _descPopup.style.cssText = `
+      position: fixed;
+      z-index: 9999;
+      max-width: 280px;
+      background: #1e1b4b;
+      color: #e0e7ff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      font-size: 13px;
+      line-height: 1.5;
+    `;
+    document.body.appendChild(_descPopup);
+  }
+
+  const desc = description && description.trim() !== '' ? description : '<em style="color:#a5b4fc">Aucune description disponible.</em>';
+  _descPopup.innerHTML = `
+    <div style="font-weight:700; color:#a5b4fc; margin-bottom:5px; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">📝 ${title}</div>
+    <div>${desc}</div>
+  `;
+
+  // Positionnement sous le curseur
+  const x = event.clientX + 14;
+  const y = event.clientY + 14;
+  _descPopup.style.left = Math.min(x, window.innerWidth - 300) + 'px';
+  _descPopup.style.top = Math.min(y, window.innerHeight - 120) + 'px';
+  _descPopup.style.opacity = '1';
+}
+
+function hideDescPopup() {
+  if (_descPopup) _descPopup.style.opacity = '0';
+}
+
+// Rendre une carte de script (style compact, 3 par ligne)
 function renderScriptCard(script) {
-  const dbIcon = script.database === "Oracle" ? "️️️🗄️" : "️️⚙️";
-  const catIcon = categoryIcons[script.category] || "📋";
   const isFav = isFavorite(script.id);
-  
   const isPending = script.visibility === 'pending';
-  const pendingClass = isPending ? 'card-pending' : '';
-  
+  const pendingBadge = isPending ? '<span class="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-semibold ml-1">⏳</span>' : '';
+
+  const titleEsc = escapeHtml(script.title).replace(/'/g, "\\'");
+  const descEsc  = escapeHtml(script.description || '').replace(/'/g, "\\'");
+
   return `
-    <div class="bg-white p-6 rounded-2xl shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 hover:scale-[1.005] border border-gray-200 flex items-center justify-between cursor-pointer group ${pendingClass}"
+    <div class="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-indigo-50 transition duration-200 cursor-pointer group ${isPending ? 'bg-yellow-50' : 'bg-white'}"
          onclick="showScriptDetail(${script.id})"
-         onmouseenter="showScriptPreview(event, ${script.id})" 
-         onmouseleave="hideScriptPreview()">
+         onmouseenter="showDescPopup(event, '${titleEsc}', '${descEsc}')"
+         onmouseleave="hideDescPopup()">
       
-      <div class="flex items-center space-x-4 flex-1 min-w-0">
-        
-        
-        <div class="flex-1 min-w-0">
-          <h3 class="text-xl font-semibold text-gray-900 leading-tight truncate">
-            ${escapeHtml(script.title)} 
-            ${isPending ? '<span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-bold ml-2">⏳ PENDING</span>' : ''}
-          </h3>
-         
-        </div>
+      <div class="flex-1 min-w-0 mr-3">
+        <span class="text-base font-medium text-gray-800 group-hover:text-indigo-700 transition truncate block leading-snug">
+          ${escapeHtml(script.title)}${pendingBadge}
+        </span>
       </div>
 
-      <div class="flex items-center space-x-4 flex-shrink-0 ml-4">
-        <button class="text-gray-400 hover:text-yellow-500 transition duration-300 transform hover:scale-125 focus:outline-none" 
+      <div class="flex items-center flex-shrink-0">
+        <button class="text-gray-300 hover:text-yellow-500 transition focus:outline-none p-1" 
                 onclick="event.stopPropagation(); toggleFavorite(${script.id})" 
                 data-favorite-id="${script.id}">
           ${isFav ? 
-            '<svg class="w-6 h-6 fill-current text-yellow-500" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' : 
-            '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.974 2.887a1 1 0 00-.363 1.118l1.519 4.674c.3.921-.755 1.688-1.538 1.118l-3.974-2.887a1 1 0 00-1.176 0l-3.974 2.887c-.783.57-1.838-.197-1.538-1.118l1.519-4.674a1 1 0 00-.363-1.118l-3.974-2.887c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"></path></svg>'}
+            '<svg class="w-4 h-4 fill-current text-yellow-500" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' : 
+            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.974 2.887a1 1 0 00-.363 1.118l1.519 4.674c.3.921-.755 1.688-1.538 1.118l-3.974-2.887a1 1 0 00-1.176 0l-3.974 2.887c-.783.57-1.838-.197-1.538-1.118l1.519-4.674a1 1 0 00-.363-1.118l-3.974-2.887c-.783-.57-.381-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"></path></svg>'}
         </button>
-
-        <svg class="w-6 h-6 text-indigo-400 group-hover:text-indigo-600 transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
       </div>
     </div>
   `;
@@ -375,7 +413,11 @@ function renderScriptList() {
       </div>
     `;
   } else {
-    listContainer.innerHTML = paginatedScripts.map(script => renderScriptCard(script)).join('');
+    listContainer.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-1">
+        ${paginatedScripts.map(script => renderScriptCard(script)).join('')}
+      </div>
+    `;
   }
 
   const pageNumbers = [];
