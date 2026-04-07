@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DailyPhrase — Apprenez l'anglais</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg:#F7F4EE;--surface:#FFF;--surface2:#F0EDE6;
+  --accent:#2D5A3D;--accent-light:#E8F2EB;
+  --accent2:#C9773A;--accent2-light:#FDF1E7;
+  --text:#1C1C1A;--text-mid:#5A5854;--text-soft:#9A9690;
+  --border:rgba(0,0,0,0.08);--border-med:rgba(0,0,0,0.14);
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:0 2px 8px rgba(0,0,0,0.08),0 12px 40px rgba(0,0,0,0.08);
+  --radius:12px;--radius-lg:20px;
+  --font-d:'Fraunces',Georgia,serif;--font-b:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font-b);background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
+nav{position:sticky;top:0;z-index:100;background:rgba(247,244,238,0.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;height:60px;}
+.nav-logo{font-family:var(--font-d);font-weight:700;font-size:1.25rem;color:var(--accent);margin-right:auto;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.nav-logo span{color:var(--accent2);}
+.nav-links{display:flex;gap:2px;}
+.nav-btn{background:none;border:none;font-family:var(--font-b);font-size:14px;color:var(--text-mid);padding:8px 14px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:var(--accent);color:#fff;font-weight:500;}
+.nav-count{display:inline-flex;align-items:center;justify-content:center;background:var(--accent2);color:#fff;font-size:11px;font-weight:500;width:18px;height:18px;border-radius:50%;margin-left:5px;vertical-align:middle;}
+#loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:opacity .4s;}
+#loading-overlay.hide{opacity:0;pointer-events:none;}
+.spinner{width:36px;height:36px;border:3px solid var(--border-med);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-family:var(--font-d);font-size:1.1rem;color:var(--text-mid);}
+.page{display:none;}.page.active{display:block;}
+.home-hero{max-width:680px;margin:0 auto;padding:3.5rem 1.5rem 2rem;text-align:center;}
+.home-hero h1{font-family:var(--font-d);font-size:clamp(2rem,5vw,3rem);font-weight:300;line-height:1.2;margin-bottom:1rem;}
+.home-hero h1 em{font-style:italic;color:var(--accent);}
+.home-hero p{color:var(--text-mid);font-size:1rem;max-width:480px;margin:0 auto 2rem;}
+.stats-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;}
+.stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 20px;font-size:14px;color:var(--text-mid);display:flex;align-items:center;gap:6px;}
+.stat-pill strong{color:var(--text);font-weight:500;}
+.streak-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent2-light);border:1px solid rgba(201,119,58,.2);color:var(--accent2);padding:6px 16px;border-radius:100px;font-size:13px;font-weight:500;margin-bottom:1.5rem;}
+.btn-primary{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:13px 28px;font-family:var(--font-b);font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary:hover{background:#244d34;transform:translateY(-1px);}
+.btn-primary:disabled{background:#8aab95;cursor:not-allowed;transform:none;}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-med);border-radius:var(--radius);padding:12px 24px;font-family:var(--font-b);font-size:14px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-secondary:hover{background:var(--surface2);}
+.home-recent{max-width:680px;margin:0 auto 4rem;padding:0 1.5rem;}
+.section-title{font-family:var(--font-d);font-size:1.3rem;font-weight:500;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;}
+.see-all{font-family:var(--font-b);font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.cat-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;}
+.chip{padding:5px 14px;border-radius:100px;font-size:13px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.phrase-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:10px;transition:all .15s;}
+.phrase-card:hover{border-color:var(--border-med);box-shadow:var(--shadow);}
+.phrase-en{font-family:var(--font-d);font-size:1.1rem;font-weight:500;color:var(--text);margin-bottom:4px;line-height:1.4;}
+.phrase-fr{color:var(--text-mid);font-size:14px;margin-bottom:8px;}
+.phrase-example{color:var(--text-soft);font-size:13px;font-style:italic;border-left:2px solid var(--accent-light);padding-left:10px;margin-bottom:10px;}
+.phrase-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.cat-badge{padding:3px 10px;border-radius:100px;font-size:12px;}
+.phrase-date{font-size:12px;color:var(--text-soft);margin-left:auto;}
+.phrase-actions{display:flex;gap:6px;align-items:center;}
+.icon-btn{background:none;border:1px solid transparent;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;color:var(--text-soft);flex-shrink:0;}
+.icon-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text);}
+.icon-btn.fav-active{color:#E8A020;}
+.card-top{display:flex;align-items:flex-start;gap:10px;}
+.card-content{flex:1;min-width:0;}
+.cat-quotidien{background:#EEF2FF;color:#4338CA;}
+.cat-travail{background:#FEF3C7;color:#92400E;}
+.cat-voyage{background:#ECFDF5;color:#065F46;}
+.cat-social{background:#FDF2F8;color:#9D174D;}
+.cat-autre{background:var(--surface2);color:var(--text-mid);}
+.edit-form{background:var(--surface2);border-radius:var(--radius);padding:14px;margin-top:10px;display:grid;gap:10px;}
+.edit-form input,.edit-form textarea,.edit-form select{background:var(--surface);border:1.5px solid var(--border-med);border-radius:10px;padding:10px 12px;font-family:var(--font-b);font-size:14px;color:var(--text);outline:none;width:100%;transition:border-color .15s;}
+.edit-form input:focus,.edit-form textarea:focus,.edit-form select:focus{border-color:var(--accent);}
+.edit-form textarea{min-height:60px;resize:vertical;}
+.edit-actions{display:flex;gap:8px;}
+.form-page{max-width:620px;margin:0 auto;padding:2.5rem 1.5rem;}
+.form-page h2{font-family:var(--font-d);font-size:1.8rem;font-weight:500;margin-bottom:.4rem;}
+.form-page .sub{color:var(--text-mid);font-size:14px;margin-bottom:2rem;}
+.form-grid{display:grid;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:13px;font-weight:500;color:var(--text-mid);text-transform:uppercase;letter-spacing:.04em;}
+.form-group input,.form-group textarea,.form-group select{background:var(--surface);border:1.5px solid var(--border-med);border-radius:var(--radius);padding:12px 14px;font-family:var(--font-b);font-size:15px;color:var(--text);outline:none;transition:border-color .15s;resize:vertical;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,90,61,.1);}
+.form-group textarea{min-height:80px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:500px){.form-row{grid-template-columns:1fr;}}
+.form-submit-row{display:flex;gap:12px;align-items:center;padding-top:8px;flex-wrap:wrap;}
+.toast{display:none;border-radius:var(--radius);padding:10px 16px;font-size:14px;align-items:center;gap:8px;margin-top:12px;}
+.toast.show{display:flex;}
+.toast-ok{background:var(--accent-light);color:var(--accent);border:1px solid rgba(45,90,61,.2);}
+.toast-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;}
+.list-page{max-width:720px;margin:0 auto;padding:2.5rem 1.5rem;}
+.list-header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1.5rem;}
+.list-header h2{font-family:var(--font-d);font-size:1.8rem;font-weight:500;margin-right:auto;}
+.search-wrap{position:relative;}
+.search-wrap input{background:var(--surface);border:1.5px solid var(--border-med);border-radius:100px;padding:9px 16px 9px 36px;font-family:var(--font-b);font-size:14px;width:200px;outline:none;transition:all .15s;}
+.search-wrap input:focus{border-color:var(--accent);width:240px;}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-soft);font-size:14px;pointer-events:none;}
+.sort-select{background:var(--surface);border:1.5px solid var(--border-med);border-radius:100px;padding:9px 14px;font-family:var(--font-b);font-size:13px;color:var(--text-mid);cursor:pointer;outline:none;}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center;}
+.filter-label{font-size:13px;color:var(--text-soft);margin-right:4px;}
+.fav-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-mid);background:var(--surface);border:1px solid var(--border);padding:5px 14px;border-radius:100px;cursor:pointer;transition:all .15s;margin-left:auto;}
+.fav-toggle.on{background:var(--accent2-light);color:var(--accent2);border-color:rgba(201,119,58,.3);}
+.empty-state{text-align:center;padding:4rem 1rem;color:var(--text-soft);}
+.empty-icon{font-size:3rem;margin-bottom:1rem;opacity:.4;}
+.review-page{max-width:640px;margin:0 auto;padding:2.5rem 1.5rem;}
+.review-page h2{font-family:var(--font-d);font-size:1.8rem;font-weight:500;margin-bottom:1rem;}
+.progress-bar-wrap{background:var(--surface2);border-radius:100px;height:6px;overflow:hidden;margin-bottom:1.5rem;}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:100px;transition:width .4s ease;}
+.review-counter{text-align:center;font-size:13px;color:var(--text-soft);margin-bottom:1.5rem;}
+.flashcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem 2rem;text-align:center;box-shadow:var(--shadow);min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;}
+.flashcard:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.flashcard-en{font-family:var(--font-d);font-size:1.5rem;font-weight:500;line-height:1.3;margin:1rem 0 .5rem;}
+.flashcard-hint{font-size:13px;color:var(--text-soft);margin-top:1.5rem;}
+.flashcard-reveal{width:100%;border-top:1px solid var(--border);margin-top:1.5rem;padding-top:1.5rem;animation:fadeIn .3s ease;}
+.flashcard-fr{font-size:1.1rem;color:var(--text-mid);margin-bottom:.8rem;}
+.flashcard-ex{font-size:14px;color:var(--text-soft);font-style:italic;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.review-nav{display:flex;gap:12px;justify-content:center;margin-top:1.5rem;flex-wrap:wrap;}
+.review-end{text-align:center;padding:3rem 1rem;}
+.review-end h3{font-family:var(--font-d);font-size:1.6rem;font-weight:500;margin-bottom:.5rem;}
+.ai-page{max-width:700px;margin:0 auto;padding:2.5rem 1.5rem;}
+.ai-page h2{font-family:var(--font-d);font-size:1.8rem;font-weight:500;margin-bottom:.4rem;}
+.ai-page .sub{color:var(--text-mid);font-size:14px;margin-bottom:2rem;}
+.ai-prompt-area{background:var(--surface);border:1.5px solid var(--border-med);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem;}
+.ai-prompt-label{font-size:13px;font-weight:500;color:var(--text-mid);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:block;}
+.ai-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem;}
+.ai-chip{padding:7px 16px;border-radius:100px;font-size:13px;background:var(--surface2);border:1.5px solid var(--border);cursor:pointer;transition:all .15s;}
+.ai-chip:hover,.ai-chip.active{background:var(--accent2-light);border-color:var(--accent2);color:var(--accent2);}
+.ai-level-chip{padding:6px 14px;border-radius:100px;font-size:13px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+.ai-level-chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.ai-custom-input{background:var(--surface);border:1.5px solid var(--border-med);border-radius:var(--radius);padding:11px 14px;font-family:var(--font-b);font-size:15px;color:var(--text);outline:none;width:100%;transition:border-color .15s;}
+.ai-custom-input:focus{border-color:var(--accent);}
+.ai-divider{height:1px;background:var(--border);margin:14px 0;}
+.ai-suggestions-grid{display:grid;gap:12px;margin-top:1.5rem;}
+.ai-suggestion-card{background:var(--surface);border:1.5px solid rgba(201,119,58,.25);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;position:relative;transition:all .15s;}
+.ai-suggestion-card:hover{border-color:var(--accent2);box-shadow:var(--shadow);}
+.ai-label{position:absolute;top:12px;right:12px;background:var(--accent2-light);color:var(--accent2);font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px;}
+.ai-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.btn-accept{background:var(--accent-light);color:var(--accent);border:1px solid rgba(45,90,61,.2);border-radius:var(--radius);padding:8px 18px;font-family:var(--font-b);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-accept:hover{background:#d1e9d8;}
+.btn-reject{background:var(--surface2);color:var(--text-soft);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;font-family:var(--font-b);font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-reject:hover{color:var(--text);}
+.ai-generating{display:flex;align-items:center;gap:10px;color:var(--text-mid);font-size:14px;padding:1.5rem 0;}
+.ai-dot{width:8px;height:8px;background:var(--accent2);border-radius:50%;animation:bounce .8s infinite ease-in-out;}
+.ai-dot:nth-child(2){animation-delay:.15s;}.ai-dot:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.db-status{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 10px;border-radius:100px;font-weight:500;}
+.db-ok{background:var(--accent-light);color:var(--accent);}
+.db-err{background:#FEE2E2;color:#991B1B;}
+.db-loading{background:var(--surface2);color:var(--text-mid);}
+.db-dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+@media(max-width:600px){
+  nav{display:none;}
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(247,244,238,.96);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));justify-content:space-around;}
+  .mnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;font-family:var(--font-b);font-size:11px;color:var(--text-soft);padding:4px 10px;border-radius:8px;}
+  .mnav-btn .ico{font-size:20px;}
+  .mnav-btn.active{color:var(--accent);}
+  body{padding-bottom:72px;}
+  .home-hero{padding-top:2rem;}
+}
+@media(min-width:601px){.mobile-nav{display:none;}}
+@keyframes fadeOut{to{opacity:0;transform:translateX(20px);overflow:hidden;max-height:0;padding:0;margin:0;}}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Connexion à Supabase…</div>
+</div>
+
+<nav>
+  <div class="nav-logo" onclick="showPage('home')">Daily<span>Phrase</span></div>
+  <div style="margin-right:12px;" id="db-status-el"></div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('home')" id="nav-home">Accueil</button>
+    <button class="nav-btn" onclick="showPage('add')" id="nav-add">+ Ajouter</button>
+    <button class="nav-btn" onclick="showPage('list')" id="nav-list">Mes phrases <span class="nav-count" id="count-badge">0</span></button>
+    <button class="nav-btn" onclick="showPage('review')" id="nav-review">Révision</button>
+    <button class="nav-btn" onclick="showPage('ai')" id="nav-ai">✨ IA</button>
+  </div>
+</nav>
+
+<div class="mobile-nav">
+  <button class="mnav-btn active" onclick="showPage('home')" id="mnav-home"><span class="ico">🏠</span><span>Accueil</span></button>
+  <button class="mnav-btn" onclick="showPage('add')" id="mnav-add"><span class="ico">➕</span><span>Ajouter</span></button>
+  <button class="mnav-btn" onclick="showPage('list')" id="mnav-list"><span class="ico">📚</span><span>Phrases</span></button>
+  <button class="mnav-btn" onclick="showPage('review')" id="mnav-review"><span class="ico">🎯</span><span>Révision</span></button>
+  <button class="mnav-btn" onclick="showPage('ai')" id="mnav-ai"><span class="ico">✨</span><span>IA</span></button>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="home-hero">
+    <div class="streak-badge">🔥 <span id="streak-text">Commencez aujourd'hui !</span></div>
+    <h1>Maîtrisez l'anglais<br><em>phrase par phrase</em></h1>
+    <p>Vos phrases synchronisées sur tous vos appareils. Révisez partout, à tout moment.</p>
+    <div class="stats-row">
+      <div class="stat-pill">📖 <strong id="stat-total">0</strong> phrases</div>
+      <div class="stat-pill">⭐ <strong id="stat-fav">0</strong> favoris</div>
+      <div class="stat-pill">📅 Aujourd'hui : <strong id="stat-today">0</strong></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="showPage('add')">✏️ Ajouter une phrase</button>
+      <button class="btn-secondary" onclick="showPage('ai')">✨ Suggestions IA</button>
+    </div>
+  </div>
+  <div class="home-recent">
+    <div class="section-title">Récemment ajoutées <button class="see-all" onclick="showPage('list')">Voir tout →</button></div>
+    <div id="home-recent-list"><div class="empty-state"><div class="empty-icon">📝</div><p>Chargement…</p></div></div>
+  </div>
+</div>
+
+<!-- ADD -->
+<div class="page" id="page-add">
+  <div class="form-page">
+    <h2>Nouvelle phrase</h2>
+    <p class="sub">Sauvegardé dans le cloud ☁️ — accessible depuis n'importe quel appareil.</p>
+    <div class="form-grid">
+      <div class="form-group"><label>Phrase en anglais *</label><input type="text" id="inp-en" placeholder="ex: I'm looking forward to seeing you." autocomplete="off"></div>
+      <div class="form-group"><label>Traduction française *</label><input type="text" id="inp-fr" placeholder="ex: J'ai hâte de te voir."></div>
+      <div class="form-group"><label>Exemple d'utilisation</label><textarea id="inp-ex" placeholder="ex: She texted: 'I'm looking forward to seeing you!'"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Catégorie</label>
+          <select id="inp-cat">
+            <option value="quotidien">🗓 Quotidien</option>
+            <option value="travail">💼 Travail</option>
+            <option value="voyage">✈️ Voyage</option>
+            <option value="social">💬 Social</option>
+            <option value="autre">📌 Autre</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Favori</label>
+          <select id="inp-fav"><option value="0">Non</option><option value="1">⭐ Oui</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-submit-row">
+      <button class="btn-primary" id="btn-add-submit" onclick="addPhrase()">✅ Enregistrer</button>
+      <button class="btn-secondary" onclick="clearForm()">Réinitialiser</button>
+    </div>
+    <div class="toast toast-ok" id="add-toast">✅ Phrase enregistrée dans le cloud !</div>
+    <div class="toast toast-err" id="add-error">❌ Erreur lors de l'enregistrement.</div>
+  </div>
+</div>
+
+<!-- LIST -->
+<div class="page" id="page-list">
+  <div class="list-page">
+    <div class="list-header">
+      <h2>Mes phrases</h2>
+      <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="search-input" placeholder="Rechercher…" oninput="renderList()"></div>
+      <select class="sort-select" id="sort-select" onchange="renderList()">
+        <option value="newest">Plus récentes</option>
+        <option value="oldest">Plus anciennes</option>
+        <option value="alpha">A → Z</option>
+      </select>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">Filtrer :</span>
+      <div id="list-cat-chips" class="cat-chips" style="margin:0;flex:1;"></div>
+      <button class="fav-toggle" id="fav-toggle" onclick="toggleFavFilter()">⭐ Favoris</button>
+    </div>
+    <div id="phrase-list"></div>
+  </div>
+</div>
+
+<!-- REVIEW -->
+<div class="page" id="page-review">
+  <div class="review-page">
+    <h2>Mode révision</h2>
+    <div class="filter-bar" style="margin-bottom:1rem;">
+      <span class="filter-label">Catégorie :</span>
+      <div id="review-cat-chips" class="cat-chips" style="margin:0;flex:1;"></div>
+    </div>
+    <div id="review-content"></div>
+  </div>
+</div>
+
+<!-- AI -->
+<div class="page" id="page-ai">
+  <div class="ai-page">
+    <h2>✨ Suggestions IA</h2>
+    <p class="sub">Llama 3.1 (Groq) génère des phrases adaptées à votre niveau et à votre thème. Validez celles qui vous conviennent pour les ajouter directement à votre collection Supabase.</p>
+    <div class="ai-prompt-area">
+      <span class="ai-prompt-label">Thème</span>
+      <div class="ai-chip-row" id="ai-theme-chips"></div>
+      <input type="text" class="ai-custom-input" id="ai-custom-theme" placeholder="Ou saisissez un thème personnalisé… (ex: parler à un médecin)">
+      <div class="ai-divider"></div>
+      <span class="ai-prompt-label">Niveau</span>
+      <div class="ai-chip-row" id="ai-level-chips"></div>
+      <div class="ai-divider"></div>
+      <span class="ai-prompt-label">Nombre de phrases</span>
+      <div class="ai-chip-row" id="ai-count-chips"></div>
+    </div>
+    <button class="btn-primary" id="btn-ai-gen" onclick="generateSuggestions()" style="width:100%;justify-content:center;font-size:16px;padding:16px;">✨ Générer des phrases avec Llama 3.1 (Groq)</button>
+    <div id="ai-results" style="margin-top:1.5rem;"></div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE ──────────────────────────────────────────────────────
+const SUPA_URL = "https://josncyjmqsikoitvbehe.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impvc25jeWptcXNpa29pdHZiZWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1MTY4NzAsImV4cCI6MjA3ODA5Mjg3MH0.bLz6ZVEWfRW5t1paXntlBSrTGcUAPscbI8tytMyimng";
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let phrases = [];
+
+async function initDB() {
+  setDbStatus('loading', '… Connexion');
+  try {
+    const { data, error } = await sb.from('phrases').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    phrases = (data || []).map(rowToPhrase);
+    setDbStatus('ok', '☁️ Synchronisé');
+  } catch(e) {
+    console.error('Supabase error:', e.message);
+    setDbStatus('err', '⚠️ Non connecté');
+  }
+  document.getElementById('loading-overlay').classList.add('hide');
+  renderHome();
+}
+
+function setDbStatus(cls, label) {
+  document.getElementById('db-status-el').innerHTML =
+    `<span class="db-status db-${cls}"><span class="db-dot"></span>${label}</span>`;
+}
+
+function rowToPhrase(r) {
+  return { id: r.id, en: r.en, fr: r.fr, example: r.example || '', cat: r.cat || 'quotidien', fav: r.fav || false, date: r.created_at };
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────
+const CATS = {
+  quotidien: { label: '🗓 Quotidien', cls: 'cat-quotidien' },
+  travail:   { label: '💼 Travail',   cls: 'cat-travail' },
+  voyage:    { label: '✈️ Voyage',    cls: 'cat-voyage' },
+  social:    { label: '💬 Social',    cls: 'cat-social' },
+  autre:     { label: '📌 Autre',     cls: 'cat-autre' }
+};
+
+function catBadge(c) {
+  const cat = CATS[c] || CATS.autre;
+  return `<span class="cat-badge ${cat.cls}">${cat.label}</span>`;
+}
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.9;
+  window.speechSynthesis.speak(u);
+}
+function esc(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+function updateBadge() { document.getElementById('count-badge').textContent = phrases.length; }
+function getStreak() {
+  if (!phrases.length) return 0;
+  const days = [...new Set(phrases.map(p => new Date(p.date).toDateString()))].sort((a, b) => new Date(b) - new Date(a));
+  let streak = 0, cur = new Date();
+  for (let d of days) {
+    if (new Date(d).toDateString() === cur.toDateString()) { streak++; cur.setDate(cur.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+function showToast(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── NAV ────────────────────────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  ['nav-', 'mnav-'].forEach(prefix => {
+    const el = document.getElementById(prefix + p);
+    if (el) el.classList.add('active');
+  });
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.mnav-btn').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + p);
+  const mnavEl = document.getElementById('mnav-' + p);
+  if (navEl) navEl.classList.add('active');
+  if (mnavEl) mnavEl.classList.add('active');
+  document.getElementById('page-' + p).classList.add('active');
+  if (p === 'home') renderHome();
+  if (p === 'list') { listCatFilter = 'all'; favFilter = false; renderList(); }
+  if (p === 'review') { reviewCatFilter = 'all'; startReview(); }
+  if (p === 'ai') renderAIPage();
+  window.scrollTo(0, 0);
+}
+
+// ── PHRASE CARD ────────────────────────────────────────────────────
+function phraseCard(p, mini = false) {
+  const favCls = p.fav ? 'fav-active' : '';
+  const ex = p.example ? `<div class="phrase-example">${p.example}</div>` : '';
+  const actions = mini ? `
+    <button class="icon-btn" title="Écouter" onclick="speak('${esc(p.en)}')">🔊</button>
+    <button class="icon-btn ${favCls}" title="Favori" onclick="toggleFav('${p.id}')">⭐</button>
+  ` : `
+    <button class="icon-btn" title="Écouter" onclick="speak('${esc(p.en)}')">🔊</button>
+    <button class="icon-btn ${favCls}" title="Favori" onclick="toggleFav('${p.id}')">⭐</button>
+    <button class="icon-btn" title="Modifier" onclick="toggleEdit('${p.id}')">✏️</button>
+    <button class="icon-btn" title="Supprimer" onclick="deletePhrase('${p.id}')">🗑</button>
+  `;
+  return `<div class="phrase-card" id="card-${p.id}">
+    <div class="card-top">
+      <div class="card-content">
+        <div class="phrase-en">${p.en}</div>
+        <div class="phrase-fr">${p.fr}</div>
+        ${ex}
+        <div class="phrase-meta">${catBadge(p.cat)}<span class="phrase-date">${formatDate(p.date)}</span></div>
+      </div>
+      <div class="phrase-actions">${actions}</div>
+    </div>
+    ${!mini ? `<div id="edit-${p.id}" style="display:none;">${editFormHTML(p)}</div>` : ''}
+  </div>`;
+}
+
+function editFormHTML(p) {
+  return `<div class="edit-form">
+    <input type="text" id="eed-en-${p.id}" value="${esc(p.en)}" placeholder="Phrase en anglais">
+    <input type="text" id="eed-fr-${p.id}" value="${esc(p.fr)}" placeholder="Traduction française">
+    <textarea id="eed-ex-${p.id}" placeholder="Exemple">${p.example || ''}</textarea>
+    <select id="eed-cat-${p.id}">
+      ${Object.keys(CATS).map(c => `<option value="${c}" ${p.cat === c ? 'selected' : ''}>${CATS[c].label}</option>`).join('')}
+    </select>
+    <div class="edit-actions">
+      <button class="btn-primary" style="font-size:13px;padding:8px 18px;" onclick="saveEdit('${p.id}')">💾 Sauvegarder</button>
+      <button class="btn-secondary" style="font-size:13px;padding:8px 14px;" onclick="toggleEdit('${p.id}')">Annuler</button>
+    </div>
+  </div>`;
+}
+
+function toggleEdit(id) {
+  const el = document.getElementById('edit-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────
+async function addPhrase(data = null) {
+  let en, fr, ex, cat, fav;
+  if (data) {
+    ({ en, fr, ex, cat, fav } = data);
+  } else {
+    en = document.getElementById('inp-en').value.trim();
+    fr = document.getElementById('inp-fr').value.trim();
+    ex = document.getElementById('inp-ex').value.trim();
+    cat = document.getElementById('inp-cat').value;
+    fav = document.getElementById('inp-fav').value === '1';
+    if (!en || !fr) { alert('La phrase anglaise et la traduction sont obligatoires.'); return false; }
+    const btn = document.getElementById('btn-add-submit');
+    btn.disabled = true; btn.textContent = '…Enregistrement';
+  }
+  try {
+    const { data: row, error } = await sb.from('phrases').insert({ en, fr, example: ex || '', cat, fav }).select().single();
+    if (error) throw error;
+    phrases.unshift(rowToPhrase(row));
+    updateBadge();
+    if (!data) { showToast('add-toast'); clearForm(); }
+    renderHome();
+    return true;
+  } catch (e) {
+    console.error(e);
+    if (!data) showToast('add-error');
+    return false;
+  } finally {
+    if (!data) {
+      const btn = document.getElementById('btn-add-submit');
+      if (btn) { btn.disabled = false; btn.textContent = '✅ Enregistrer'; }
+    }
+  }
+}
+
+async function toggleFav(id) {
+  const p = phrases.find(x => x.id === id); if (!p) return;
+  const nv = !p.fav;
+  const { error } = await sb.from('phrases').update({ fav: nv }).eq('id', id);
+  if (!error) { p.fav = nv; renderList(); renderHome(); }
+}
+
+async function saveEdit(id) {
+  const en = document.getElementById('eed-en-' + id).value.trim();
+  const fr = document.getElementById('eed-fr-' + id).value.trim();
+  const ex = document.getElementById('eed-ex-' + id).value.trim();
+  const cat = document.getElementById('eed-cat-' + id).value;
+  if (!en || !fr) { alert('Champs obligatoires manquants.'); return; }
+  const { error } = await sb.from('phrases').update({ en, fr, example: ex, cat }).eq('id', id);
+  if (!error) {
+    const p = phrases.find(x => x.id === id);
+    if (p) Object.assign(p, { en, fr, example: ex, cat });
+    renderList(); renderHome();
+  } else { alert('Erreur lors de la modification.'); }
+}
+
+async function deletePhrase(id) {
+  if (!confirm('Supprimer cette phrase définitivement ?')) return;
+  const { error } = await sb.from('phrases').delete().eq('id', id);
+  if (!error) { phrases = phrases.filter(p => p.id !== id); renderList(); renderHome(); updateBadge(); }
+}
+
+function clearForm() {
+  ['inp-en', 'inp-fr', 'inp-ex'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const c = document.getElementById('inp-cat'); if (c) c.value = 'quotidien';
+  const f = document.getElementById('inp-fav'); if (f) f.value = '0';
+}
+
+// ── HOME ──────────────────────────────────────────────────────────
+function renderHome() {
+  const today = new Date().toDateString();
+  const todayCount = phrases.filter(p => new Date(p.date).toDateString() === today).length;
+  const favCount = phrases.filter(p => p.fav).length;
+  document.getElementById('stat-total').textContent = phrases.length;
+  document.getElementById('stat-fav').textContent = favCount;
+  document.getElementById('stat-today').textContent = todayCount;
+  const streak = getStreak();
+  document.getElementById('streak-text').textContent = streak > 1 ? `${streak} jours de suite` : streak === 1 ? '1 jour de suite' : 'Commencez aujourd\'hui !';
+  updateBadge();
+  const el = document.getElementById('home-recent-list');
+  const recent = [...phrases].slice(0, 4);
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><p>Aucune phrase encore.<br>Commencez dès maintenant !</p><button class="btn-primary" onclick="showPage('add')">Ajouter ma première phrase</button></div>`;
+  } else {
+    el.innerHTML = recent.map(p => phraseCard(p, true)).join('');
+  }
+}
+
+// ── LIST ──────────────────────────────────────────────────────────
+let listCatFilter = 'all', favFilter = false;
+
+function renderListCatChips() {
+  const all = ['all', ...Object.keys(CATS)];
+  document.getElementById('list-cat-chips').innerHTML = all.map(c => {
+    const label = c === 'all' ? '🗂 Tout' : CATS[c].label;
+    return `<span class="chip ${listCatFilter === c ? 'active' : ''}" onclick="listCatFilter='${c}';renderList()">${label}</span>`;
+  }).join('');
+  const ft = document.getElementById('fav-toggle');
+  if (ft) { if (favFilter) ft.classList.add('on'); else ft.classList.remove('on'); }
+}
+function toggleFavFilter() { favFilter = !favFilter; renderList(); }
+
+function renderList() {
+  renderListCatChips();
+  const q = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+  const sort = document.getElementById('sort-select')?.value || 'newest';
+  let filtered = phrases.filter(p => {
+    const matchCat = listCatFilter === 'all' || p.cat === listCatFilter;
+    const matchFav = !favFilter || p.fav;
+    const matchQ = !q || p.en.toLowerCase().includes(q) || p.fr.toLowerCase().includes(q) || (p.example || '').toLowerCase().includes(q);
+    return matchCat && matchFav && matchQ;
+  });
+  if (sort === 'newest') filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  else if (sort === 'oldest') filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+  else filtered.sort((a, b) => a.en.localeCompare(b.en));
+  const el = document.getElementById('phrase-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>${phrases.length ? 'Aucune phrase ne correspond.' : 'Aucune phrase encore.'}</p></div>`;
+  } else {
+    el.innerHTML = filtered.map(p => phraseCard(p)).join('');
+  }
+}
+
+// ── REVIEW ────────────────────────────────────────────────────────
+let reviewCatFilter = 'all', reviewQueue = [], reviewIdx = 0, revealed = false;
+
+function renderReviewCatChips() {
+  const all = ['all', ...Object.keys(CATS)];
+  document.getElementById('review-cat-chips').innerHTML = all.map(c => {
+    const label = c === 'all' ? '🗂 Tout' : CATS[c].label;
+    return `<span class="chip ${reviewCatFilter === c ? 'active' : ''}" onclick="reviewCatFilter='${c}';startReview()">${label}</span>`;
+  }).join('');
+}
+
+function startReview() {
+  renderReviewCatChips();
+  let pool = phrases.filter(p => reviewCatFilter === 'all' || p.cat === reviewCatFilter);
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  reviewQueue = pool; reviewIdx = 0; revealed = false; renderReview();
+}
+
+function renderReview() {
+  const el = document.getElementById('review-content');
+  if (!reviewQueue.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><p>Ajoutez des phrases pour réviser.</p><button class="btn-primary" onclick="showPage('add')">Ajouter une phrase</button></div>`;
+    return;
+  }
+  if (reviewIdx >= reviewQueue.length) {
+    el.innerHTML = `<div class="review-end"><div style="font-size:3rem;margin-bottom:1rem">🎉</div><h3>Révision terminée !</h3><p>Vous avez révisé <strong>${reviewQueue.length}</strong> phrase${reviewQueue.length > 1 ? 's' : ''}. Excellent travail !</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;"><button class="btn-primary" onclick="startReview()">🔄 Recommencer</button><button class="btn-secondary" onclick="showPage('add')">✏️ Ajouter</button></div></div>`;
+    return;
+  }
+  const p = reviewQueue[reviewIdx];
+  const pct = Math.round((reviewIdx / reviewQueue.length) * 100);
+  el.innerHTML = `
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    <div class="review-counter">${reviewIdx + 1} / ${reviewQueue.length}</div>
+    <div class="flashcard" onclick="revealCard()">
+      ${catBadge(p.cat)}
+      <div class="flashcard-en">${p.en}</div>
+      ${revealed ? `<div class="flashcard-reveal"><div class="flashcard-fr">🇫🇷 ${p.fr}</div>${p.example ? `<div class="flashcard-ex">"${p.example}"</div>` : ''}</div>` : `<div class="flashcard-hint">Cliquez pour voir la traduction</div>`}
+    </div>
+    <div class="review-nav">
+      <button class="btn-secondary" onclick="speak('${esc(p.en)}')">🔊 Écouter</button>
+      ${revealed ? `<button class="btn-primary" onclick="nextCard()">Suivant →</button>` : ''}
+      ${reviewIdx > 0 ? `<button class="btn-secondary" onclick="reviewIdx--;revealed=false;renderReview()">← Précédent</button>` : ''}
+    </div>`;
+}
+function revealCard() { if (revealed) return; revealed = true; renderReview(); }
+function nextCard() { reviewIdx++; revealed = false; renderReview(); }
+
+// ── AI PAGE ───────────────────────────────────────────────────────
+const AI_THEMES = ['Voyage', 'Travail', 'Santé', 'Shopping', 'Restaurant', 'Téléphone', 'Email pro', 'Réunion', 'Urgence', 'Amis', 'Famille', 'Technologie', 'Sport', 'Culture'];
+const AI_LEVELS = [{ v: 'A1', l: 'Débutant A1' }, { v: 'A2', l: 'Élémentaire A2' }, { v: 'B1', l: 'Intermédiaire B1' }, { v: 'B2', l: 'Avancé B2' }, { v: 'C1', l: 'Expert C1' }];
+const AI_COUNTS = [3, 5, 8, 10];
+let aiTheme = '', aiLevel = 'B1', aiCount = 5;
+
+function renderAIPage() {
+  document.getElementById('ai-theme-chips').innerHTML = AI_THEMES.map(t =>
+    `<span class="ai-chip ${aiTheme === t ? 'active' : ''}" onclick="aiTheme=aiTheme==='${t}'?'':'${t}';document.getElementById('ai-custom-theme').value='';renderAIPage()">${t}</span>`
+  ).join('');
+  document.getElementById('ai-level-chips').innerHTML = AI_LEVELS.map(l =>
+    `<span class="ai-level-chip ${aiLevel === l.v ? 'active' : ''}" onclick="aiLevel='${l.v}';renderAIPage()">${l.l}</span>`
+  ).join('');
+  document.getElementById('ai-count-chips').innerHTML = AI_COUNTS.map(n =>
+    `<span class="ai-chip ${aiCount === n ? 'active' : ''}" onclick="aiCount=${n};renderAIPage()">${n} phrases</span>`
+  ).join('');
+}
+
+async function generateSuggestions() {
+  const customTheme = document.getElementById('ai-custom-theme').value.trim();
+  const theme = customTheme || aiTheme;
+  if (!theme) { alert('Choisissez ou saisissez un thème avant de générer.'); return; }
+
+  const groqKey = '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';
+
+  const btn = document.getElementById('btn-ai-gen');
+  btn.disabled = true; btn.textContent = '✨ Génération en cours…';
+  document.getElementById('ai-results').innerHTML = `<div class="ai-generating"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div><span>Llama 3.1 compose vos phrases…</span></div>`;
+
+  const prompt = `Tu es un professeur d'anglais expert et bienveillant. Génère exactement ${aiCount} phrases anglaises pratiques sur le thème "${theme}", adaptées au niveau ${aiLevel}.
+
+Critères :
+- Phrases naturelles et utilisables dans la vie réelle
+- Adaptées au niveau ${aiLevel} (vocabulaire et complexité)
+- Variées (pas de répétition de structures)
+
+Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ou après, sans balises markdown. Format exact :
+[{"en":"...","fr":"...","example":"...","cat":"quotidien|travail|voyage|social|autre"}]`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 1500,
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: 'Tu es un professeur d\'anglais expert. Tu réponds UNIQUEMENT avec du JSON valide, sans texte ni balises markdown.' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Erreur HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('Pas de JSON valide dans la réponse');
+    const suggestions = JSON.parse(match[0]);
+    renderAISuggestions(suggestions, theme);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('ai-results').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Erreur : ${e.message}<br>Vérifiez votre clé Groq et réessayez.</p></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ Générer des phrases avec Llama 3.1 (Groq)';
+  }
+}
+
+function renderAISuggestions(suggestions, theme) {
+  const el = document.getElementById('ai-results');
+  if (!suggestions.length) { el.innerHTML = '<p style="color:var(--text-soft)">Aucune suggestion générée.</p>'; return; }
+  el.innerHTML = `
+    <div style="font-family:var(--font-d);font-size:1.1rem;font-weight:500;margin-bottom:1rem;color:var(--text-mid);">${suggestions.length} phrase${suggestions.length > 1 ? 's' : ''} générée${suggestions.length > 1 ? 's' : ''} — thème : <em>${theme}</em></div>
+    <div class="ai-suggestions-grid">${suggestions.map((s, i) => aiCard(s, i)).join('')}</div>`;
+}
+
+function aiCard(s, i) {
+  const safen = (v) => (v || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return `<div class="ai-suggestion-card" id="aic-${i}"
+    data-en="${safen(s.en)}" data-fr="${safen(s.fr)}" data-ex="${safen(s.example)}" data-cat="${safen(s.cat)}">
+    <span class="ai-label">✨ Llama 3.1</span>
+    <div class="phrase-en" style="padding-right:70px;">${s.en || ''}</div>
+    <div class="phrase-fr">${s.fr || ''}</div>
+    ${s.example ? `<div class="phrase-example">${s.example}</div>` : ''}
+    <div class="phrase-meta" style="margin-bottom:0;">${catBadge(s.cat || 'autre')}</div>
+    <div class="ai-actions">
+      <button class="btn-accept" onclick="acceptSugg(${i})">✅ Ajouter à ma collection</button>
+      <button class="btn-reject" onclick="rejectSugg(${i})">✕ Ignorer</button>
+      <button class="icon-btn" onclick="speak('${esc(s.en)}')" style="margin-left:auto;">🔊</button>
+    </div>
+  </div>`;
+}
+
+async function acceptSugg(i) {
+  const card = document.getElementById('aic-' + i);
+  if (!card) return;
+  const en = card.getAttribute('data-en');
+  const fr = card.getAttribute('data-fr');
+  const ex = card.getAttribute('data-ex');
+  const cat = card.getAttribute('data-cat');
+  card.style.opacity = '0.5'; card.style.pointerEvents = 'none';
+  const ok = await addPhrase({ en, fr, ex, cat, fav: false });
+  if (ok) {
+    card.style.opacity = '1';
+    card.style.background = 'var(--accent-light)';
+    card.style.borderColor = 'rgba(45,90,61,.4)';
+    card.innerHTML = `<div style="text-align:center;padding:1.5rem;color:var(--accent);font-weight:500;font-family:var(--font-d);font-size:1rem;">✅ Ajoutée à votre collection !</div>`;
+  } else {
+    card.style.opacity = '1'; card.style.pointerEvents = 'auto';
+    alert('Erreur lors de l\'ajout. Réessayez.');
+  }
+}
+
+function rejectSugg(i) {
+  const card = document.getElementById('aic-' + i);
+  if (card) { card.style.animation = 'fadeOut .3s ease forwards'; setTimeout(() => card.remove(), 280); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+initDB();
+</script>
+
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║          SQL À EXÉCUTER DANS SUPABASE → SQL EDITOR              ║
+║   supabase.com → votre projet → SQL Editor → New query          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+-- 1. Créer la table
+CREATE TABLE IF NOT EXISTS phrases (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  en          TEXT NOT NULL,
+  fr          TEXT NOT NULL,
+  example     TEXT DEFAULT '',
+  cat         TEXT DEFAULT 'quotidien',
+  fav         BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Activer Row Level Security
+ALTER TABLE phrases ENABLE ROW LEVEL SECURITY;
+
+-- 3. Politique d'accès public (pas d'auth requise)
+CREATE POLICY "public_all" ON phrases
+  FOR ALL USING (true) WITH CHECK (true);
+
+-- Cliquez "Run" ▶ puis rechargez l'application !
+-->
+</body>
+</html>
