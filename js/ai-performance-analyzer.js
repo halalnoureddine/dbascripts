@@ -325,7 +325,7 @@ async function callGroqAPI(prompt, analysisType) {
         
         // Réutiliser la fonction sécurisée de ai-analyzer.js
         const data = await callGroqSecurely(prompt, {
-            model: "llama-3.3-70b-versatile",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             temperature: 0.2,
             max_tokens: 3000
         });

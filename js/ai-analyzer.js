@@ -27,7 +27,7 @@ async function callGroqSecurely(prompt, options = {}) {
             },
             body: JSON.stringify({
                 prompt: prompt,
-                model: options.model || "llama-3.3-70b-versatile",
+                model: options.model || "meta-llama/llama-4-scout-17b-16e-instruct",
                 temperature: options.temperature || 0.3,
                 max_tokens: options.max_tokens || 2000,
                 system_message: options.system_message || "Tu es un expert DBA. Tu réponds TOUJOURS en JSON valide."
@@ -135,7 +135,7 @@ async function checkGroqConfiguration() {
             },
             body: JSON.stringify({
                 prompt: "Test",
-                model: "llama-3.3-70b-versatile",
+                model: "meta-llama/llama-4-scout-17b-16e-instruct",
                 max_tokens: 10
             })
         });
@@ -551,7 +551,7 @@ async function saveGroqKey(event) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
+               model: "meta-llama/llama-4-scout-17b-16e-instruct",
                 messages: [{
                     role: "user",
                     content: "Say 'OK' if you receive this"

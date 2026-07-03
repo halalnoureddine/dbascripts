@@ -56,7 +56,7 @@ RÉPONDS UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks):
         console.log('📊 Analyzing user request...');
         
         const data = await callGroqSecurely(prompt, {
-            model: "llama-3.3-70b-versatile",
+             model: "meta-llama/llama-4-scout-17b-16e-instruct",
             temperature: 0.2,
             max_tokens: 2000
         });
@@ -162,7 +162,7 @@ IMPORTANT: Dans les chaînes, utilise \\n pour les retours à la ligne, pas de v
         console.log('🚀 Generating script...');
         
         const data = await callGroqSecurely(prompt, {
-            model: "llama-3.3-70b-versatile",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             temperature: 0.1,
             max_tokens: 4000
         });
